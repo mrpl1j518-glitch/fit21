@@ -21,7 +21,11 @@ export function CoachPinGate({ onSuccess }: CoachPinGateProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const expected = import.meta.env.VITE_COACH_PIN ?? '2121';
+    const expected = import.meta.env.VITE_COACH_PIN;
+    if (!expected) {
+      setError('PIN no configurado en el servidor');
+      return;
+    }
     if (pin === expected) {
       localStorage.setItem(PIN_STORAGE_KEY, 'true');
       setError('');
