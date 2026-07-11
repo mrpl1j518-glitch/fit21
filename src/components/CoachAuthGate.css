@@ -29,13 +29,13 @@
 
 .pin-gate__card input {
   width: 100%;
-  text-align: center;
-  font-size: 1.5rem;
-  letter-spacing: 0.4em;
+  text-align: left;
+  font-size: 1rem;
+  letter-spacing: normal;
   padding: 0.75rem;
   border: 2px solid #e8e4ef;
   border-radius: 12px;
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem;
 }
 
 .pin-gate__error {

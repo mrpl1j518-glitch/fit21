@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { CoachPinGate, isCoachAuthenticated } from './components/CoachPinGate';
+import { CoachAuthGate, useCoachAuth } from './components/CoachAuthGate';
 import { CoachDashboard } from './pages/CoachDashboard';
 import { CoachClientEdit } from './pages/CoachClientEdit';
 import { ExerciseLibrary } from './pages/ExerciseLibrary';
@@ -10,10 +10,19 @@ import { isFirebaseConfigured } from './lib/firebase';
 import './App.css';
 
 function CoachLayout() {
-  const [authed, setAuthed] = useState(isCoachAuthenticated());
+  const { ready, isCoach } = useCoachAuth();
+  const [loginTick, setLoginTick] = useState(0);
 
-  if (!authed) {
-    return <CoachPinGate onSuccess={() => setAuthed(true)} />;
+  if (!ready) {
+    return (
+      <div className="pin-gate">
+        <p>Cargando...</p>
+      </div>
+    );
+  }
+
+  if (!isCoach) {
+    return <CoachAuthGate onSuccess={() => setLoginTick((n) => n + 1)} key={loginTick} />;
   }
 
   return (

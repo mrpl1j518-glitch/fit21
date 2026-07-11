@@ -8,6 +8,7 @@ import {
 } from 'firebase/firestore';
 import { nanoid } from 'nanoid';
 import { db } from './firebase';
+import { normalizeMediaUrl } from './mediaUrl';
 import type {
   Client,
   LibraryExercise,
@@ -207,7 +208,7 @@ export async function saveLibraryExercise(
   const docId = id ?? nanoid(10);
   const payload: LibraryExercise = {
     name: exercise.name.trim(),
-    mediaUrl: exercise.mediaUrl.trim(),
+    mediaUrl: normalizeMediaUrl(exercise.mediaUrl),
     muscleGroup: exercise.muscleGroup?.trim() || '',
     createdAt: exercise.createdAt ?? new Date().toISOString(),
   };

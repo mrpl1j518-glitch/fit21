@@ -1,4 +1,5 @@
 import { getMediaType, getYouTubeEmbedUrl } from '../lib/media';
+import { normalizeMediaUrl } from '../lib/mediaUrl';
 import './MediaPlayer.css';
 
 interface MediaPlayerProps {
@@ -8,7 +9,8 @@ interface MediaPlayerProps {
 }
 
 export function MediaPlayer({ url, alt = 'Media', compact }: MediaPlayerProps) {
-  const type = getMediaType(url);
+  const resolved = url ? normalizeMediaUrl(url) : '';
+  const type = getMediaType(resolved);
 
   if (type === 'empty') {
     return (
@@ -19,7 +21,7 @@ export function MediaPlayer({ url, alt = 'Media', compact }: MediaPlayerProps) {
   }
 
   if (type === 'youtube') {
-    const embed = getYouTubeEmbedUrl(url!);
+    const embed = getYouTubeEmbedUrl(resolved);
     if (!embed) {
       return (
         <div className={`media-placeholder ${compact ? 'media-placeholder--compact' : ''}`}>
@@ -42,7 +44,7 @@ export function MediaPlayer({ url, alt = 'Media', compact }: MediaPlayerProps) {
   if (type === 'video') {
     return (
       <video className={`media-video ${compact ? 'media-video--compact' : ''}`} controls playsInline>
-        <source src={url} />
+        <source src={resolved} />
       </video>
     );
   }
@@ -50,9 +52,10 @@ export function MediaPlayer({ url, alt = 'Media', compact }: MediaPlayerProps) {
   return (
     <img
       className={`media-image ${compact ? 'media-image--compact' : ''}`}
-      src={url}
+      src={resolved}
       alt={alt}
       loading="lazy"
+      referrerPolicy="no-referrer"
     />
   );
 }

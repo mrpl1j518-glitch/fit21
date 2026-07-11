@@ -1,10 +1,55 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Sin autenticación real: lectura/escritura abierta para coach + clientas de confianza.
-    // La "seguridad" depende de clientIds no adivinables y del PIN del coach en el frontend.
-    match /{document=**} {
-      allow read, write: if true;
+    function isCoach() {
+      return request.auth != null;
+    }
+
+    // Perfiles de clientas: lectura pública (link personal), escritura solo coach
+    match /clients/{clientId} {
+      allow read: if true;
+      allow create, update, delete: if isCoach();
+    }
+
+    // Rutinas y nutrición: la clienta lee su plan; solo el coach edita
+    match /routines/{docId} {
+      allow read: if true;
+      allow create, update, delete: if isCoach();
+    }
+
+    match /nutrition/{clientId} {
+      allow read: if true;
+      allow create, update, delete: if isCoach();
+    }
+
+    // Biblioteca: solo el coach (los GIFs se copian a la rutina)
+    match /library-exercises/{exerciseId} {
+      allow read, write: if isCoach();
+    }
+
+    // Historial: solo coach
+    match /routineHistory/{entryId} {
+      allow read, write: if isCoach();
+    }
+
+    match /nutritionHistory/{entryId} {
+      allow read, write: if isCoach();
+    }
+
+    // Progreso: la clienta marca días desde su link (sin cuenta)
+    match /weekProgress/{docId} {
+      allow read: if true;
+      allow create, update: if true;
+      allow delete: if isCoach();
+    }
+
+    match /progressCount/{clientId} {
+      allow read: if true;
+      allow create, update: if request.resource.data.keys().hasOnly(['count'])
+        && request.resource.data.count is int
+        && request.resource.data.count >= 0
+        && request.resource.data.count <= 21;
+      allow delete: if isCoach();
     }
   }
 }

@@ -6,6 +6,7 @@ import {
   saveLibraryExercise,
   deleteLibraryExercise,
 } from '../lib/firestore';
+import { formatFirebaseError, normalizeMediaUrl } from '../lib/mediaUrl';
 import type { LibraryExercise } from '../types';
 import './ExerciseLibrary.css';
 
@@ -21,10 +22,14 @@ export function ExerciseLibrary() {
   const [muscleGroup, setMuscleGroup] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [ok, setOk] = useState('');
 
   useEffect(() => {
     return subscribeLibraryExercises(setLibrary);
   }, []);
+
+  const previewUrl = normalizeMediaUrl(mediaUrl);
 
   const rows = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -42,7 +47,12 @@ export function ExerciseLibrary() {
   };
 
   const handleSave = async () => {
-    if (!name.trim() || !mediaUrl.trim()) return;
+    setError('');
+    setOk('');
+    if (!name.trim() || !mediaUrl.trim()) {
+      setError('Falta el nombre o el link del GIF.');
+      return;
+    }
     setSaving(true);
     try {
       await saveLibraryExercise(editingId, {
@@ -52,6 +62,9 @@ export function ExerciseLibrary() {
         createdAt: editingId ? library[editingId]?.createdAt : undefined,
       });
       resetForm();
+      setOk('Ejercicio guardado en la biblioteca.');
+    } catch (e) {
+      setError(formatFirebaseError(e));
     } finally {
       setSaving(false);
     }
@@ -63,13 +76,19 @@ export function ExerciseLibrary() {
     setName(item.name);
     setMediaUrl(item.mediaUrl);
     setMuscleGroup(item.muscleGroup ?? '');
+    setError('');
+    setOk('');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleDelete = async (id: string, exerciseName: string) => {
     if (!confirm(`¿Eliminar “${exerciseName}” de la biblioteca?`)) return;
-    await deleteLibraryExercise(id);
-    if (editingId === id) resetForm();
+    try {
+      await deleteLibraryExercise(id);
+      if (editingId === id) resetForm();
+    } catch (e) {
+      setError(formatFirebaseError(e));
+    }
   };
 
   return (
@@ -101,14 +120,16 @@ export function ExerciseLibrary() {
           />
         </label>
         <label>
-          Link del GIF
+          Link del GIF (Drive o directo)
           <input
             value={mediaUrl}
             onChange={(e) => setMediaUrl(e.target.value)}
-            placeholder="https://...archivo.gif"
+            placeholder="Pega el link completo de Drive"
           />
         </label>
-        {mediaUrl && <MediaPlayer url={mediaUrl} alt={name || 'Preview'} compact />}
+        {previewUrl && <MediaPlayer url={previewUrl} alt={name || 'Preview'} compact />}
+        {error && <p className="form-error">{error}</p>}
+        {ok && <p className="form-ok">{ok}</p>}
         <div className="library-form__actions">
           <button type="button" className="btn btn--pink" onClick={handleSave} disabled={saving}>
             {saving ? 'Guardando...' : editingId ? 'Actualizar' : 'Guardar en biblioteca'}

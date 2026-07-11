@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Logo } from '../components/Logo';
+import { coachLogout } from '../components/CoachAuthGate';
 import {
   subscribeClients,
   createClient,
@@ -56,10 +57,18 @@ export function CoachDashboard() {
   const handleAdd = async () => {
     const name = newName.trim();
     if (!name) return;
-    const id = generateClientId();
-    await createClient(id, name);
-    setNewName('');
-    setShowAdd(false);
+    try {
+      const id = generateClientId();
+      await createClient(id, name);
+      setNewName('');
+      setShowAdd(false);
+    } catch (e) {
+      alert(
+        e && typeof e === 'object' && 'code' in e && (e as { code: string }).code === 'permission-denied'
+          ? 'Firebase bloqueó el guardado. Publica las Rules de Firestore (allow read, write: if true) y vuelve a intentar.'
+          : `No se pudo guardar: ${e instanceof Error ? e.message : 'error'}`
+      );
+    }
   };
 
   const handleCopyLink = async (clientId: string) => {
@@ -89,6 +98,13 @@ export function CoachDashboard() {
           <h1>Clientas</h1>
           <p className="coach-header__sub">Rutinas y planes · FIT21</p>
         </div>
+        <button
+          type="button"
+          className="btn btn--ghost btn--small coach-logout"
+          onClick={() => coachLogout()}
+        >
+          Salir
+        </button>
       </header>
 
       <button

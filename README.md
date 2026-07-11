@@ -41,7 +41,14 @@ Rutinas y planes de alimentación personalizados, sin app store ni login para la
 Configurar en `.env` local y en Vercel/Netlify:
 
 - `VITE_FIREBASE_*` — credenciales del SDK web de Firebase
-- `VITE_COACH_PIN` — PIN de 4-6 dígitos para `/coach`
+
+El coach entra con **Email/Password** de Firebase Authentication (no PIN).
+
+## Seguridad Firestore
+
+- Escritura de clientas, rutinas, nutrición, biblioteca e historial: solo usuario autenticado (coach)
+- Lectura de planes: pública vía link personal (`/plan/{clientId}`)
+- Progreso (`weekProgress`, `progressCount`): la clienta puede marcar días sin cuenta
 
 ## Colecciones Firestore
 
