@@ -22,11 +22,21 @@ export function getMediaType(url?: string): MediaType {
 export function getYouTubeEmbedUrl(url: string): string | null {
   try {
     const parsed = new URL(url);
+    const host = parsed.hostname.toLowerCase();
+    const isYouTube =
+      host === 'youtu.be' ||
+      host === 'youtube.com' ||
+      host === 'www.youtube.com' ||
+      host === 'm.youtube.com' ||
+      host === 'youtube-nocookie.com' ||
+      host === 'www.youtube-nocookie.com';
+    if (!isYouTube) return null;
+
     let videoId: string | null = null;
 
-    if (parsed.hostname.includes('youtu.be')) {
+    if (host === 'youtu.be') {
       videoId = parsed.pathname.slice(1).split('/')[0];
-    } else if (parsed.hostname.includes('youtube')) {
+    } else {
       videoId = parsed.searchParams.get('v');
       if (!videoId && parsed.pathname.startsWith('/embed/')) {
         videoId = parsed.pathname.split('/')[2];
@@ -36,7 +46,8 @@ export function getYouTubeEmbedUrl(url: string): string | null {
       }
     }
 
-    return videoId ? `https://www.youtube.com/embed/${videoId}` : null;
+    if (!videoId || !/^[a-zA-Z0-9_-]{6,20}$/.test(videoId)) return null;
+    return `https://www.youtube.com/embed/${videoId}`;
   } catch {
     return null;
   }

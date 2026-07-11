@@ -9,7 +9,7 @@ import {
   type Unsubscribe,
 } from 'firebase/firestore';
 import { nanoid } from 'nanoid';
-import { db } from './firebase';
+import { db, auth } from './firebase';
 import { normalizeMediaUrl } from './mediaUrl';
 import { slugifyName } from './clientSlug';
 import { daysSinceDate, formatDateKey, startOfTodayIso } from './dates';
@@ -34,6 +34,10 @@ import type {
 function requireDb() {
   if (!db) throw new Error('Firebase no está configurado. Revisa tu archivo .env');
   return db;
+}
+
+function isCoachSession(): boolean {
+  return Boolean(auth?.currentUser);
 }
 
 export function generateClientId(): string {
@@ -333,7 +337,7 @@ async function resetClientCycle(clientId: string) {
   );
 }
 
-/** Reinicia el ciclo si ya pasaron 28 días desde el inicio. Migra cycleStartedAt si falta. */
+/** Reinicia el ciclo si ya pasaron 28 días. Solo escribe si hay sesión coach. */
 export async function ensureActiveCycle(clientId: string): Promise<Client | null> {
   const firestore = requireDb();
   const ref = doc(firestore, 'clients', clientId);
@@ -342,6 +346,11 @@ export async function ensureActiveCycle(clientId: string): Promise<Client | null
 
   let client = snap.data() as Client;
   let cycleStartedAt = client.cycleStartedAt;
+
+  // Clienta anónima: solo lectura (rules ya no permiten update de cycleStartedAt)
+  if (!isCoachSession()) {
+    return client;
+  }
 
   if (!cycleStartedAt) {
     cycleStartedAt = (await getEarliestRoutineCreatedAt(clientId)) ?? undefined;
@@ -506,20 +515,22 @@ export function subscribeClientNotifications(
 ): Unsubscribe {
   return onSnapshot(doc(requireDb(), 'clientNotifications', clientId), (snap) => {
     const data = snap.exists() ? (snap.data() as ClientNotificationsDoc) : { messages: [] };
-    onData((data.messages ?? []).slice(0, MAX_NOTIFICATIONS));
+    const lastReadAt = data.lastReadAt ?? '';
+    const messages = (data.messages ?? []).slice(0, MAX_NOTIFICATIONS).map((m) => ({
+      ...m,
+      read: Boolean(m.read) || (lastReadAt !== '' && m.createdAt <= lastReadAt),
+    }));
+    onData(messages);
   });
 }
 
+/** Clienta: solo escribe lastReadAt (rules). */
 export async function markNotificationsRead(clientId: string) {
   const firestore = requireDb();
   const ref = doc(firestore, 'clientNotifications', clientId);
   const snap = await getDoc(ref);
   if (!snap.exists()) return;
-  const messages = ((snap.data() as ClientNotificationsDoc).messages ?? []).map((m) => ({
-    ...m,
-    read: true,
-  }));
-  await setDoc(ref, { messages }, { merge: true });
+  await setDoc(ref, { lastReadAt: new Date().toISOString() }, { merge: true });
 }
 
 export async function submitClientFeedback(

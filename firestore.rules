@@ -1,37 +1,80 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    function isCoach() {
-      return request.auth != null;
+
+    /**
+     * Coach = Auth + (custom claim coach:true | doc coaches/{uid} | email allowlist).
+     * 1) Pon tu correo en coachEmails() y en VITE_COACH_EMAILS (.env / Vercel).
+     * 2) Firebase Console → Authentication → Settings → desactiva "Email enumeration / Sign-up".
+     * 3) Opcional: crea coaches/{tuUid} (write solo por Console/Admin).
+     */
+    function coachEmails() {
+      return [
+        'mrpl1j518@gmail.com'
+      ];
     }
 
-    // Perfiles de clientas: lectura pública (link personal), escritura solo coach
-    match /clients/{clientId} {
-      allow read: if true;
-      allow create, delete: if isCoach();
-      allow update: if isCoach() || (
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['cycleStartedAt'])
-        && request.resource.data.cycleStartedAt is string
+    function isAllowlistedCoachEmail() {
+      return request.auth != null
+        && request.auth.token.email is string
+        && request.auth.token.email in coachEmails();
+    }
+
+    function isCoach() {
+      return request.auth != null && (
+        request.auth.token.coach == true
+        || exists(/databases/$(database)/documents/coaches/$(request.auth.uid))
+        || coachEmails().size() == 0
+        || isAllowlistedCoachEmail()
       );
     }
 
-    // Rutinas y nutrición: la clienta lee su plan; solo el coach edita
+    function weekProgressClientId(id) {
+      // docId = "{clientId}_{YYYY-MM-DD}"
+      return id.size() > 11 ? id[0:id.size() - 11] : '';
+    }
+
+    function weekProgressWeekKey(id) {
+      return id.size() > 11 ? id[id.size() - 10:] : '';
+    }
+
+    function weekProgressBaseValid(id) {
+      return weekProgressClientId(id).size() >= 8
+        && weekProgressWeekKey(id).matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+        && exists(/databases/$(database)/documents/clients/$(weekProgressClientId(id)))
+        && request.resource.data.keys().size() <= 7
+        && request.resource.data.values().toSet().hasOnly([true, false]);
+    }
+
+    // Allowlist de coaches (solo Admin/Console escribe).
+    match /coaches/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if false;
+    }
+
+    // Perfiles: get público (link personal); list solo coach. Sin update anónimo.
+    match /clients/{clientId} {
+      allow get: if true;
+      allow list: if isCoach();
+      allow create, update, delete: if isCoach();
+    }
+
     match /routines/{docId} {
-      allow read: if true;
+      allow get: if true;
+      allow list: if isCoach();
       allow create, update, delete: if isCoach();
     }
 
-    match /nutrition/{clientId} {
-      allow read: if true;
+    match /nutrition/{docId} {
+      allow get: if true;
+      allow list: if isCoach();
       allow create, update, delete: if isCoach();
     }
 
-    // Biblioteca: solo el coach (los GIFs se copian a la rutina)
     match /library-exercises/{exerciseId} {
       allow read, write: if isCoach();
     }
 
-    // Historial: solo coach
     match /routineHistory/{entryId} {
       allow read, write: if isCoach();
     }
@@ -40,36 +83,87 @@ service cloud.firestore {
       allow read, write: if isCoach();
     }
 
-    // Progreso: la clienta marca días desde su link (sin cuenta)
+    /**
+     * Progreso semanal.
+     * - DocId: {clientId}_{YYYY-MM-DD del lunes}
+     * - Valores solo boolean; máx. 7 keys (una semana)
+     * - Clienta: create/update con ≤1 key cambiada por write
+     * - Coach: puede resetear/borrar
+     */
     match /weekProgress/{docId} {
-      allow read: if true;
-      allow create, update: if true;
+      allow get: if true;
+      allow list: if isCoach();
+      allow create: if weekProgressBaseValid(docId)
+        && (
+          isCoach()
+          || request.resource.data.keys().size() <= 1
+        );
+      allow update: if weekProgressBaseValid(docId)
+        && (
+          isCoach()
+          || request.resource.data.diff(resource.data).affectedKeys().size() <= 1
+        );
       allow delete: if isCoach();
     }
 
     match /progressCount/{clientId} {
-      allow read: if true;
-      allow create, update: if request.resource.data.keys().hasOnly(['count'])
+      allow get: if true;
+      allow list: if isCoach();
+      allow create: if isCoach()
+        || (
+          exists(/databases/$(database)/documents/clients/$(clientId))
+          && request.resource.data.keys().hasOnly(['count'])
+          && request.resource.data.count is int
+          && request.resource.data.count >= 0
+          && request.resource.data.count <= 1
+        );
+      allow update: if request.resource.data.keys().hasOnly(['count'])
         && request.resource.data.count is int
         && request.resource.data.count >= 0
-        && request.resource.data.count <= 28;
+        && request.resource.data.count <= 28
+        && (
+          isCoach()
+          || (
+            exists(/databases/$(database)/documents/clients/$(clientId))
+            && (
+              request.resource.data.count == resource.data.count + 1
+              || request.resource.data.count == resource.data.count - 1
+            )
+          )
+        );
       allow delete: if isCoach();
     }
 
+    // Coach escribe mensajes; clienta solo actualiza lastReadAt
     match /clientNotifications/{clientId} {
-      allow read: if true;
-      allow create, update: if true;
-      allow delete: if isCoach();
+      allow get: if true;
+      allow list: if isCoach();
+      allow create, delete: if isCoach();
+      allow update: if isCoach()
+        || (
+          exists(/databases/$(database)/documents/clients/$(clientId))
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastReadAt'])
+          && request.resource.data.lastReadAt is string
+          && request.resource.data.lastReadAt.size() > 0
+          && request.resource.data.lastReadAt.size() < 40
+        );
     }
 
     match /feedback/{feedbackId} {
       allow read: if isCoach();
       allow create: if request.resource.data.keys().hasAll(['clientId', 'clientName', 'rating', 'message', 'createdAt'])
+        && request.resource.data.clientId is string
+        && request.resource.data.clientId.size() > 0
+        && request.resource.data.clientId.size() < 64
+        && exists(/databases/$(database)/documents/clients/$(request.resource.data.clientId))
+        && request.resource.data.clientName is string
+        && request.resource.data.clientName.size() <= 80
         && request.resource.data.rating is int
         && request.resource.data.rating >= 1
         && request.resource.data.rating <= 5
         && request.resource.data.message is string
-        && request.resource.data.message.size() <= 500;
+        && request.resource.data.message.size() <= 500
+        && request.resource.data.createdAt is string;
       allow update, delete: if isCoach();
     }
   }

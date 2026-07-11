@@ -48,20 +48,21 @@ El coach entra con **Email/Password** de Firebase Authentication.
 
 ## Seguridad Firestore
 
-- Escritura de clientas, rutinas, nutrición, biblioteca e historial: solo usuario autenticado (coach)
-- Lectura de planes: pública vía link personal (`/plan/{clientId}`)
-- Progreso (`weekProgress`, `progressCount`): la clienta puede marcar días sin cuenta
-- Borrado de `weekProgress` y notificaciones: solo coach
+- Escritura de clientas, rutinas, nutrición, biblioteca e historial: solo **coach autorizado**
+- Lectura de un plan: **get** público vía link; **list** de colecciones solo coach
+- Progreso: la clienta marca días; `progressCount` solo +/-1; notificaciones: solo `lastReadAt`
+- Ver guía completa: [SECURITY.md](./SECURITY.md)
 
 ## Colecciones Firestore
 
 - `library-exercises` — catálogo reutilizable `{ name, mediaUrl, muscleGroup }`
 - `clients` — `{ name, slug, createdAt, cycleStartedAt, coachMeta? }`
+- `coaches` — `{uid}` allowlist opcional de coaches (write solo Console/Admin)
 - `routines` — `{clientId}_{dayIndex}: { exercises, dayName, level, classification, ... }`
 - `nutrition` — `{clientId}_{dayIndex}` o legacy `{clientId}`
 - `weekProgress` — `{clientId}_{weekStart}: { "YYYY-MM-DD": boolean }`
 - `progressCount` — `{clientId}: { count }` (ciclo de **28 días**)
-- `clientNotifications` — notificaciones para la clienta
+- `clientNotifications` — `{ messages, lastReadAt? }`
 - `feedback` — opiniones de clientas
 - `routineHistory` / `nutritionHistory` — copias con `savedAt` en cada guardado (respaldo)
 

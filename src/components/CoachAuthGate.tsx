@@ -6,6 +6,7 @@ import {
   type User,
 } from 'firebase/auth';
 import { auth } from '../lib/firebase';
+import { isCoachEmailAllowed } from '../lib/coachAllowlist';
 import { Logo } from './Logo';
 import './CoachAuthGate.css';
 
@@ -28,7 +29,8 @@ export function useCoachAuth() {
     });
   }, []);
 
-  return { user, ready, isCoach: Boolean(user) };
+  const emailOk = isCoachEmailAllowed(user?.email);
+  return { user, ready, isCoach: Boolean(user) && emailOk };
 }
 
 export async function coachLogout() {
@@ -51,7 +53,13 @@ export function CoachAuthGate({ onSuccess }: CoachAuthGateProps) {
     setLoading(true);
     setError('');
     try {
-      await signInWithEmailAndPassword(auth, email.trim(), password);
+      const cred = await signInWithEmailAndPassword(auth, email.trim(), password);
+      if (!isCoachEmailAllowed(cred.user.email)) {
+        await signOut(auth);
+        setError('Este correo no está autorizado como coach. Revisa VITE_COACH_EMAILS.');
+        setPassword('');
+        return;
+      }
       onSuccess();
     } catch {
       setError('Correo o contraseña incorrectos');

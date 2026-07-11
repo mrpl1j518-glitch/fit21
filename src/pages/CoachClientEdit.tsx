@@ -5,7 +5,7 @@ import { MediaPlayer } from '../components/MediaPlayer';
 import { ExercisePicker, type PickedExercise } from '../components/ExercisePicker';
 import { PlanMeta } from '../components/PlanMeta';
 import {
-  subscribeClients,
+  subscribeClient,
   subscribeRoutine,
   saveRoutine,
   subscribeNutrition,
@@ -71,8 +71,8 @@ export function CoachClientEdit() {
 
   useEffect(() => {
     if (!clientId) return;
-    return subscribeClients((clients) => {
-      setClientName(clients[clientId]?.name ?? 'Clienta');
+    return subscribeClient(clientId, (client) => {
+      setClientName(client?.name ?? 'Clienta');
     });
   }, [clientId]);
 

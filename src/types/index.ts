@@ -111,6 +111,8 @@ export interface ClientNotification {
 
 export interface ClientNotificationsDoc {
   messages: ClientNotification[];
+  /** ISO: mensajes con createdAt <= lastReadAt se consideran leídos. */
+  lastReadAt?: string;
 }
 
 export interface ClientFeedback {

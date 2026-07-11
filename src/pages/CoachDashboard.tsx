@@ -12,6 +12,7 @@ import {
   subscribeClientPlanMeta,
   subscribeClientCoachOverview,
   subscribeFeedback,
+  ensureActiveCycle,
   type ClientPlanMeta,
 } from '../lib/firestore';
 import { ClientOverviewPanel } from '../components/ClientOverviewPanel';
@@ -59,15 +60,34 @@ export function CoachDashboard() {
 
   const ratingLabel = (rating: number) => `${rating}/5`;
 
+  const clientIds = Object.keys(clients);
+
   useEffect(() => {
     return subscribeClients(setClients);
   }, []);
 
+  // Reinicio de ciclo 28 días: solo coach puede escribir cycleStartedAt / progress reset
+  useEffect(() => {
+    if (clientIds.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      for (const id of clientIds) {
+        if (cancelled) return;
+        try {
+          await ensureActiveCycle(id);
+        } catch {
+          // permission / red: no bloquear el panel
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [clientIds.join(',')]);
+
   useEffect(() => {
     return subscribeFeedback(setFeedback);
   }, []);
-
-  const clientIds = Object.keys(clients);
 
   useEffect(() => {
     const unsubs = clientIds.map((id) =>
