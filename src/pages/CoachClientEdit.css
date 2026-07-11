@@ -79,15 +79,15 @@
   padding: 0.55rem 0.35rem;
   border: none;
   border-radius: 10px;
-  background: rgba(233, 30, 127, 0.1);
-  color: var(--fit21-pink);
+  background: rgba(20, 166, 166, 0.12);
+  color: var(--fit21-teal);
   font-size: 0.75rem;
   font-weight: 800;
   cursor: pointer;
 }
 
 .day-tab--active {
-  background: var(--fit21-pink);
+  background: var(--fit21-teal);
   color: white;
 }
 

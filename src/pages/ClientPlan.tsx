@@ -99,10 +99,16 @@ export function ClientPlan() {
   }, [clientId]);
 
   const handleToggleComplete = async () => {
-    if (!clientId || toggling || !isToday) return;
+    if (!clientId || toggling) return;
     setToggling(true);
     try {
-      await setDayComplete(clientId, weekStart, todayKey, !dayComplete, dayComplete);
+      await setDayComplete(
+        clientId,
+        weekStart,
+        selectedDateKey,
+        !dayComplete,
+        dayComplete
+      );
     } finally {
       setToggling(false);
     }
@@ -156,22 +162,19 @@ export function ClientPlan() {
 
       <section className="progress-section card">
         <DayPips count={progressCount} />
-        {isToday ? (
-          <label className="complete-check">
-            <input
-              type="checkbox"
-              checked={dayComplete}
-              onChange={handleToggleComplete}
-              disabled={toggling}
-            />
-            <span>¡Hoy completé mi rutina!</span>
-          </label>
-        ) : (
-          <p className="viewing-day-hint">
-            Estás viendo el {DAY_NAMES[selectedDay].toLowerCase()}
-            {dayComplete ? ' · Día marcado como completado' : ''}
-          </p>
-        )}
+        <label className="complete-check">
+          <input
+            type="checkbox"
+            checked={dayComplete}
+            onChange={handleToggleComplete}
+            disabled={toggling}
+          />
+          <span>
+            {isToday
+              ? '¡Hoy completé mi rutina!'
+              : `Completé la rutina del ${DAY_NAMES[selectedDay].toLowerCase()}`}
+          </span>
+        </label>
       </section>
 
       <section className="routine-section card">

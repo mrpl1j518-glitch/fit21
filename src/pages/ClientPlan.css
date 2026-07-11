@@ -41,7 +41,7 @@
   margin: 0.15rem 0 0;
   font-size: 0.9rem;
   font-weight: 700;
-  color: var(--fit21-pink);
+  color: var(--fit21-teal);
   text-transform: capitalize;
 }
 
@@ -49,6 +49,11 @@
   margin: 0.2rem 0 0;
   font-size: 0.85rem;
   color: var(--text-muted);
+}
+
+.client-cycle strong {
+  color: var(--fit21-teal);
+  font-size: 1.1rem;
 }
 
 .client-day-tabs {
@@ -66,32 +71,44 @@
   padding: 0.55rem 0.35rem;
   border: none;
   border-radius: 10px;
-  background: rgba(233, 30, 127, 0.1);
-  color: var(--fit21-pink);
+  background: rgba(20, 166, 166, 0.12);
+  color: var(--fit21-teal);
   font-size: 0.75rem;
   font-weight: 800;
   cursor: pointer;
 }
 
 .client-day-tabs .day-tab--active {
-  background: var(--fit21-pink);
+  background: var(--fit21-teal);
   color: white;
 }
 
 .client-day-tabs .day-tab--today:not(.day-tab--active) {
-  box-shadow: inset 0 0 0 2px var(--fit21-teal);
+  box-shadow: inset 0 0 0 2px var(--fit21-purple);
 }
 
-.viewing-day-hint {
-  margin: 1rem 0 0;
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--text-muted);
+.routine-meta {
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  background: rgba(20, 166, 166, 0.14);
+  color: #0d7a7a;
+  text-transform: capitalize;
 }
 
-.client-cycle strong {
-  color: var(--fit21-pink);
-  font-size: 1.1rem;
+.tag-badge {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  margin-top: 0.2rem;
+  color: var(--fit21-teal);
+}
+
+.plan-title {
+  font-weight: 800;
+  color: var(--fit21-teal);
+  margin: 0 0 0.25rem;
 }
 
 .progress-section {
@@ -139,16 +156,6 @@
   margin: 0;
   color: var(--fit21-purple);
   overflow-wrap: anywhere;
-}
-
-.routine-meta {
-  font-size: 0.75rem;
-  font-weight: 700;
-  padding: 0.2rem 0.5rem;
-  border-radius: 999px;
-  background: rgba(233, 30, 127, 0.12);
-  color: var(--fit21-pink);
-  text-transform: capitalize;
 }
 
 .routine-comment {
@@ -213,14 +220,6 @@
   overflow-wrap: anywhere;
 }
 
-.tag-badge {
-  display: inline-block;
-  font-size: 0.7rem;
-  font-weight: 700;
-  margin-top: 0.2rem;
-  color: var(--fit21-teal);
-}
-
 .client-exercise__stats {
   display: flex;
   flex-wrap: wrap;
@@ -250,12 +249,6 @@
   text-align: center;
   padding: 1.5rem;
   color: var(--text-muted);
-}
-
-.plan-title {
-  font-weight: 800;
-  color: var(--fit21-pink);
-  margin: 0 0 0.25rem;
 }
 
 .plan-meta {
