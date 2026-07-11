@@ -9,6 +9,8 @@
   font-size: 0.85rem;
   font-weight: 600;
   min-height: 160px;
+  width: 100%;
+  max-width: 100%;
 }
 
 .media-placeholder--compact {
@@ -18,6 +20,7 @@
 .media-youtube {
   position: relative;
   width: 100%;
+  max-width: 100%;
   padding-bottom: 56.25%;
   border-radius: 12px;
   overflow: hidden;
@@ -38,9 +41,12 @@
 
 .media-video,
 .media-image {
+  display: block;
   width: 100%;
+  max-width: 100%;
+  height: auto;
   border-radius: 12px;
-  object-fit: cover;
+  object-fit: contain;
   max-height: 280px;
   background: #f0f0f0;
 }

@@ -19,9 +19,16 @@
   box-sizing: border-box;
 }
 
+html {
+  overflow-x: hidden;
+  max-width: 100%;
+}
+
 body {
   margin: 0;
   min-height: 100vh;
+  max-width: 100%;
+  overflow-x: hidden;
   background:
     radial-gradient(ellipse at top right, rgba(233, 30, 127, 0.06) 0%, transparent 50%),
     radial-gradient(ellipse at bottom left, rgba(20, 166, 166, 0.08) 0%, transparent 50%),
@@ -30,6 +37,14 @@ body {
 
 #root {
   min-height: 100vh;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+img,
+video,
+iframe {
+  max-width: 100%;
 }
 
 h1, h2, h3 {
@@ -131,6 +146,9 @@ select:focus {
   padding: 2rem 1.5rem;
   text-align: center;
   gap: 1.25rem;
+  max-width: 100%;
+  overflow-x: hidden;
+  box-sizing: border-box;
 }
 
 .home__text {

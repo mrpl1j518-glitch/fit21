@@ -3,26 +3,32 @@
   flex-direction: column;
   align-items: center;
   gap: 0.25rem;
+  flex-shrink: 0;
+  max-width: 100%;
 }
 
 .fit21-logo__img {
+  display: block;
   object-fit: contain;
   border-radius: 50%;
+  max-width: 100%;
+  width: 56px;
+  height: 56px;
 }
 
 .fit21-logo--sm .fit21-logo__img {
-  height: 56px;
-  width: 56px;
+  width: 48px;
+  height: 48px;
 }
 
 .fit21-logo--md .fit21-logo__img {
-  height: 88px;
-  width: 88px;
+  width: 72px;
+  height: 72px;
 }
 
 .fit21-logo--lg .fit21-logo__img {
-  height: 160px;
-  width: 160px;
+  width: min(140px, 40vw);
+  height: min(140px, 40vw);
 }
 
 .fit21-logo__tagline {
@@ -32,6 +38,8 @@
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--fit21-purple);
+  text-align: center;
+  max-width: 100%;
 }
 
 .fit21-logo__tagline span {

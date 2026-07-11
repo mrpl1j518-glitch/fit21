@@ -1,7 +1,10 @@
 .coach-edit {
+  width: 100%;
   max-width: 480px;
   margin: 0 auto;
   padding: 1rem 1rem 5.5rem;
+  overflow-x: hidden;
+  box-sizing: border-box;
 }
 
 .coach-edit__header {
