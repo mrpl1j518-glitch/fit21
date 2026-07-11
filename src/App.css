@@ -302,28 +302,6 @@ select:focus {
   border: 1px solid rgba(173, 20, 87, 0.15);
 }
 
-/* Legacy aliases → unified system */
-.btn--pink {
-  background: var(--color-cta);
-  color: white;
-  box-shadow: 0 2px 8px rgba(233, 30, 127, 0.18);
-}
-
-.btn--teal {
-  background: var(--color-cta);
-  color: white;
-  box-shadow: 0 2px 8px rgba(233, 30, 127, 0.18);
-}
-
-.btn--outline-pink,
-.btn--outline-pink:hover:not(:disabled) {
-  background: var(--color-surface);
-  color: var(--color-primary);
-  border: 1.5px solid rgba(59, 30, 120, 0.22);
-  box-shadow: none;
-  opacity: 1;
-}
-
 .btn--text {
   padding: 0.25rem 0.5rem;
   background: transparent;
@@ -452,6 +430,11 @@ select:focus {
   font-size: 0.9rem;
   color: var(--text-muted);
   margin: 0;
+}
+
+.home__continue {
+  max-width: 320px;
+  text-decoration: none;
 }
 
 .home__coach-link {

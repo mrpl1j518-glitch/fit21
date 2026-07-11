@@ -13,6 +13,9 @@ import { db } from './firebase';
 import { normalizeMediaUrl } from './mediaUrl';
 import { slugifyName } from './clientSlug';
 import { daysSinceDate, formatDateKey, startOfTodayIso } from './dates';
+import { hasNutritionContent, hasRoutineContent } from './planContent';
+export { hasNutritionContent, hasRoutineContent } from './planContent';
+
 import { CYCLE_DAYS } from '../types';
 import type {
   Client,
@@ -368,23 +371,6 @@ export interface ClientPlanMeta {
   nutritionUpdatedAt: string | null;
 }
 
-function hasRoutineContent(routine: Routine | null): boolean {
-  return Boolean(routine && routine.exercises.length > 0);
-}
-
-function hasNutritionContent(plan: NutritionPlan | null): boolean {
-  if (!plan) return false;
-  if ((plan.planName ?? '').trim()) return true;
-  if ((plan.objective ?? '').trim()) return true;
-  if ((plan.dietType ?? '').trim()) return true;
-  if ((plan.calories ?? '').trim()) return true;
-  return plan.meals.some(
-    (meal) =>
-      (meal.mealName ?? '').trim() ||
-      meal.foods.some((food) => (food.name ?? '').trim() || (food.equivalents ?? '').trim())
-  );
-}
-
 function earliestDate(dates: (string | undefined | null)[]): string | null {
   const valid = dates.filter((value): value is string => Boolean(value));
   if (valid.length === 0) return null;
@@ -412,13 +398,6 @@ function buildClientPlanMeta(
     nutritionCreatedAt: earliestDate(activeNutrition.map((plan) => plan.createdAt)),
     nutritionUpdatedAt: latestDate(activeNutrition.map((plan) => plan.updatedAt ?? plan.createdAt)),
   };
-}
-
-export function subscribeAllRoutinesForClient(
-  clientId: string,
-  onData: (hasAny: boolean) => void
-): Unsubscribe {
-  return subscribeClientPlanMeta(clientId, (meta) => onData(meta.hasRoutine));
 }
 
 export function subscribeClientPlanMeta(

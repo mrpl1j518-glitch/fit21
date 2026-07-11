@@ -44,7 +44,7 @@ service cloud.firestore {
     match /weekProgress/{docId} {
       allow read: if true;
       allow create, update: if true;
-      allow delete: if true;
+      allow delete: if isCoach();
     }
 
     match /progressCount/{clientId} {

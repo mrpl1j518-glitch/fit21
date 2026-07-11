@@ -41,10 +41,11 @@ function CoachLayout() {
 }
 
 function Home() {
-  // PWA instalada: abrir el último plan de usuaria, no la landing de coach
   const remembered = getRememberedClientId();
+  const rememberedName = remembered ? getCachedClientName(remembered) : null;
+
   if (isStandaloneDisplay() && remembered) {
-    const name = getCachedClientName(remembered) ?? 'clienta';
+    const name = rememberedName ?? 'clienta';
     return <Navigate to={buildClientPlanPath(remembered, name)} replace />;
   }
 
@@ -53,6 +54,14 @@ function Home() {
   return (
     <div className="home">
       <Logo size="lg" showTagline />
+      {remembered && !isStandaloneDisplay() && (
+        <Link
+          to={buildClientPlanPath(remembered, rememberedName ?? 'clienta')}
+          className="home__continue btn btn--primary btn--block"
+        >
+          Continuar mi plan{rememberedName ? ` · ${rememberedName}` : ''}
+        </Link>
+      )}
       {standaloneWithoutPlan ? (
         <>
           <p className="home__text">

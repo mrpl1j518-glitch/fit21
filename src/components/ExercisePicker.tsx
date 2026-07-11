@@ -34,6 +34,15 @@ export function ExercisePicker({ open, onClose, onPick, onManual }: ExercisePick
     }
   }, [open]);
 
+  useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [open, onClose]);
+
   const rows = useMemo(() => {
     const q = search.trim().toLowerCase();
     return Object.entries(library)
@@ -73,7 +82,15 @@ export function ExercisePicker({ open, onClose, onPick, onManual }: ExercisePick
   if (!open) return null;
 
   return (
-    <div className="picker-overlay" role="dialog" aria-modal="true" aria-label="Elegir ejercicios">
+    <div
+      className="picker-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Elegir ejercicios"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
       <div className="picker-sheet">
         <header className="picker-sheet__head">
           <h2>Elegir ejercicios</h2>

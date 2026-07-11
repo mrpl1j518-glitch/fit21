@@ -36,6 +36,17 @@ export function CoachDashboard() {
   const [editName, setEditName] = useState('');
   const [feedback, setFeedback] = useState<(ClientFeedback & { id: string })[]>([]);
   const [showFeedback, setShowFeedback] = useState(true);
+  const [addError, setAddError] = useState('');
+
+  const formatShortDate = (iso: string) =>
+    new Date(iso).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' });
+
+  const latestPlanEdit = (meta?: ClientPlanMeta) => {
+    if (!meta) return null;
+    const dates = [meta.routineUpdatedAt, meta.nutritionUpdatedAt].filter(Boolean) as string[];
+    if (dates.length === 0) return null;
+    return dates.sort().reverse()[0];
+  };
 
   const feedbackStats = useMemo(() => {
     if (feedback.length === 0) return { count: 0, average: 0 };
@@ -90,18 +101,25 @@ export function CoachDashboard() {
   const handleAdd = async () => {
     const name = newName.trim();
     if (!name) return;
+    setAddError('');
     try {
       const id = generateClientId();
       await createClient(id, name);
       setNewName('');
       setShowAdd(false);
     } catch (e) {
-      alert(
+      setAddError(
         e && typeof e === 'object' && 'code' in e && (e as { code: string }).code === 'permission-denied'
-          ? 'Firebase bloqueó el guardado. Publica las Rules de Firestore (allow read, write: if true) y vuelve a intentar.'
+          ? 'Firebase bloqueó el guardado. Publica las reglas de Firestore y vuelve a intentar.'
           : `No se pudo guardar: ${e instanceof Error ? e.message : 'error'}`
       );
     }
+  };
+
+  const handleCancelAdd = () => {
+    setShowAdd(false);
+    setNewName('');
+    setAddError('');
   };
 
   const handleCopyLink = async (clientId: string, name: string) => {
@@ -119,7 +137,7 @@ export function CoachDashboard() {
   };
 
   const handleDelete = async (clientId: string, name: string) => {
-    if (!confirm(`¿Eliminar a ${name}? Se borrará su perfil (rutinas y plan quedan en historial).`)) return;
+    if (!confirm(`¿Eliminar a ${name}? Se borrará su perfil del panel; rutinas y planes se conservan en Firestore para respaldo.`)) return;
     await deleteClient(clientId);
   };
 
@@ -146,9 +164,10 @@ export function CoachDashboard() {
       <div className="coach-actions">
         <button
           className="btn btn--cta btn--block coach-register"
-          onClick={() => setShowAdd((v) => !v)}
+          onClick={() => setShowAdd(true)}
+          disabled={showAdd}
         >
-          + Registrar clienta
+          + Registrar cliente
         </button>
 
         <Link to="/coach/biblioteca" className="btn btn--ghost btn--block coach-library-link">
@@ -217,11 +236,12 @@ export function CoachDashboard() {
 
       {showAdd && (
         <section className="coach-add card">
-          <p className="section-title">Nueva clienta</p>
+          <p className="section-title">Registrar cliente</p>
+          {addError && <p className="form-error coach-add__error">{addError}</p>}
           <div className="coach-add__row">
             <input
               type="text"
-              placeholder="Nombre de la clienta"
+              placeholder="Nombre del cliente"
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
@@ -231,6 +251,9 @@ export function CoachDashboard() {
               Agregar
             </button>
           </div>
+          <button type="button" className="btn btn--ghost btn--block" onClick={handleCancelAdd}>
+            Cancelar
+          </button>
         </section>
       )}
 
@@ -250,15 +273,23 @@ export function CoachDashboard() {
       {rows.length === 0 ? (
         <section className="empty-card card">
           <span className="empty-mark" aria-hidden />
-          <h2>Registra a tu primera clienta</h2>
+          <h2>Registra a tu primer cliente</h2>
           <p>Asigna su rutina, plan de alimentación y envíale su link personal por WhatsApp.</p>
           <button className="btn btn--cta btn--block" onClick={() => setShowAdd(true)}>
-            Registrar primera clienta
+            Registrar primer cliente
           </button>
         </section>
       ) : (
         <ul className="client-list">
-          {rows.map((client) => (
+          {rows.map((client) => {
+            const overview = overviewByClient[client.id];
+            const lastEdit = latestPlanEdit(client.planMeta);
+            const inactive =
+              overview &&
+              overview.progressCount === 0 &&
+              overview.cycleDay > 7;
+
+            return (
             <li key={client.id} className="client-item card">
               <div className="client-item__main">
                 <span className="client-avatar" aria-hidden>
@@ -282,6 +313,11 @@ export function CoachDashboard() {
                   ) : (
                     <>
                       <strong>{client.name}</strong>
+                      {client.createdAt && (
+                        <p className="client-item__registered">
+                          Registrada el {formatShortDate(client.createdAt)}
+                        </p>
+                      )}
                       <span
                         className={`status-badge ${
                           client.planMeta?.hasRoutine || client.planMeta?.hasNutrition ? 'status-badge--ok' : ''
@@ -295,6 +331,14 @@ export function CoachDashboard() {
                             ? 'Plan alimenticio asignado'
                             : 'Sin rutina'}
                       </span>
+                      {inactive && (
+                        <span className="status-badge status-badge--warn">Sin avance aún</span>
+                      )}
+                      {lastEdit && (
+                        <p className="client-item__last-edit">
+                          Última edición del plan: {formatShortDate(lastEdit)}
+                        </p>
+                      )}
                       {client.planMeta?.hasRoutine && (
                         <PlanMeta
                           label="Rutina"
@@ -357,7 +401,8 @@ export function CoachDashboard() {
                 </div>
               )}
             </li>
-          ))}
+            );
+          })}
         </ul>
       )}
     </div>

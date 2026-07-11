@@ -51,17 +51,7 @@ const emptyNutrition = (): NutritionPlan => ({
   meals: [],
 });
 
-function hasNutritionContent(plan: NutritionPlan): boolean {
-  if ((plan.planName ?? '').trim()) return true;
-  if ((plan.objective ?? '').trim()) return true;
-  if ((plan.dietType ?? '').trim()) return true;
-  if ((plan.calories ?? '').trim()) return true;
-  return plan.meals.some(
-    (meal) =>
-      (meal.mealName ?? '').trim() ||
-      meal.foods.some((food) => (food.name ?? '').trim() || (food.equivalents ?? '').trim())
-  );
-}
+import { hasNutritionContent } from '../lib/planContent';
 
 export function CoachClientEdit() {
   const { clientId } = useParams<{ clientId: string }>();
@@ -87,10 +77,31 @@ export function CoachClientEdit() {
   }, [clientId]);
 
   useEffect(() => {
-    setRoutineDirty(false);
-    setNutritionDirty(false);
     setError('');
   }, [dayIndex, tab]);
+
+  const confirmDiscardIfDirty = (onConfirm: () => void) => {
+    const dirty = tab === 'rutina' ? routineDirty : nutritionDirty;
+    if (!dirty) {
+      onConfirm();
+      return;
+    }
+    const sectionLabel = tab === 'rutina' ? 'la rutina' : 'el plan alimenticio';
+    if (!confirm(`¿Descartar cambios en ${sectionLabel} sin guardar?`)) return;
+    if (tab === 'rutina') setRoutineDirty(false);
+    else setNutritionDirty(false);
+    onConfirm();
+  };
+
+  const handleTabChange = (next: Tab) => {
+    if (next === tab) return;
+    confirmDiscardIfDirty(() => setTab(next));
+  };
+
+  const handleDayChange = (nextDay: number) => {
+    if (nextDay === dayIndex) return;
+    confirmDiscardIfDirty(() => setDayIndex(nextDay));
+  };
 
   useEffect(() => {
     if (!clientId) return;
@@ -177,6 +188,7 @@ export function CoachClientEdit() {
       await clearRoutineDay(clientId, dayIndex);
       setRoutine(emptyRoutine());
       setRoutineDirty(false);
+      await syncClientCoachMetaFromPlans(clientId);
       flashSaved();
     } catch (e) {
       setError(formatFirebaseError(e));
@@ -194,6 +206,7 @@ export function CoachClientEdit() {
       await clearNutritionDay(clientId, dayIndex);
       setNutrition(emptyNutrition());
       setNutritionDirty(false);
+      await syncClientCoachMetaFromPlans(clientId);
       flashSaved();
     } catch (e) {
       setError(formatFirebaseError(e));
@@ -329,23 +342,33 @@ export function CoachClientEdit() {
         <h1>{clientName}</h1>
       </header>
 
-      <div className="tabs">
+      <div className="tabs" role="tablist" aria-label="Sección del plan">
         <button
+          type="button"
+          role="tab"
+          id="tab-rutina"
+          aria-selected={tab === 'rutina'}
+          aria-controls="panel-rutina"
           className={`tab ${tab === 'rutina' ? 'tab--active' : ''}`}
-          onClick={() => setTab('rutina')}
+          onClick={() => handleTabChange('rutina')}
         >
           Entrenamiento
         </button>
         <button
+          type="button"
+          role="tab"
+          id="tab-nutricion"
+          aria-selected={tab === 'nutricion'}
+          aria-controls="panel-nutricion"
           className={`tab ${tab === 'nutricion' ? 'tab--active' : ''}`}
-          onClick={() => setTab('nutricion')}
+          onClick={() => handleTabChange('nutricion')}
         >
           Plan alimenticio
         </button>
       </div>
 
       {tab === 'rutina' && (
-        <div className="edit-section">
+        <div className="edit-section" id="panel-rutina" role="tabpanel" aria-labelledby="tab-rutina">
           <div className="day-tabs" role="tablist" aria-label="Día de la semana">
             {DAY_SHORT.map((name, i) => (
               <button
@@ -354,7 +377,7 @@ export function CoachClientEdit() {
                 role="tab"
                 aria-selected={dayIndex === i}
                 className={`day-tab ${dayIndex === i ? 'day-tab--active' : ''}`}
-                onClick={() => setDayIndex(i)}
+                onClick={() => handleDayChange(i)}
               >
                 {name}
               </button>
@@ -590,7 +613,7 @@ export function CoachClientEdit() {
                 type="button"
                 className="btn btn--primary"
                 onClick={handleSaveRoutine}
-                disabled={saving}
+                disabled={saving || !routineDirty}
               >
                 {saving ? 'Guardando...' : saved ? '¡Guardado!' : 'Guardar rutina'}
               </button>
@@ -600,7 +623,7 @@ export function CoachClientEdit() {
       )}
 
       {tab === 'nutricion' && (
-        <div className="edit-section">
+        <div className="edit-section" id="panel-nutricion" role="tabpanel" aria-labelledby="tab-nutricion">
           <div className="day-tabs" role="tablist" aria-label="Día de la semana">
             {DAY_SHORT.map((name, i) => (
               <button
@@ -609,7 +632,7 @@ export function CoachClientEdit() {
                 role="tab"
                 aria-selected={dayIndex === i}
                 className={`day-tab ${dayIndex === i ? 'day-tab--active' : ''}`}
-                onClick={() => setDayIndex(i)}
+                onClick={() => handleDayChange(i)}
               >
                 {name}
               </button>
@@ -801,7 +824,7 @@ export function CoachClientEdit() {
                 type="button"
                 className="btn btn--primary"
                 onClick={handleSaveNutrition}
-                disabled={saving}
+                disabled={saving || !nutritionDirty}
               >
                 {saving ? 'Guardando...' : saved ? '¡Guardado!' : `Guardar plan · ${DAY_NAMES[dayIndex]}`}
               </button>

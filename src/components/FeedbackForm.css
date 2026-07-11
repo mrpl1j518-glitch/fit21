@@ -72,6 +72,13 @@
   color: var(--color-text-muted);
 }
 
+.feedback-form__char-count {
+  margin: calc(var(--space-xs) * -1) 0 var(--space-md);
+  font-size: var(--font-caption);
+  color: var(--color-text-subtle);
+  text-align: right;
+}
+
 .feedback-form__message-label textarea {
   display: block;
   width: 100%;

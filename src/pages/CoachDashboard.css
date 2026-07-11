@@ -255,6 +255,34 @@
   border-color: rgba(20, 166, 166, 0.2);
 }
 
+.status-badge--warn {
+  background: rgba(255, 152, 0, 0.1);
+  color: #b36b00;
+  border-color: rgba(255, 152, 0, 0.25);
+}
+
+.client-item__registered,
+.client-item__last-edit {
+  margin: 0.15rem 0 var(--space-xs);
+  font-size: var(--font-caption);
+  color: var(--color-text-muted);
+  line-height: 1.35;
+}
+
+.coach-add__error {
+  margin-bottom: var(--space-md);
+}
+
+.form-error {
+  margin: 0;
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-sm);
+  background: #fff5f5;
+  color: #ad1457;
+  font-size: var(--font-caption);
+  line-height: 1.4;
+}
+
 /* ── Estado vacío ── */
 .empty-card {
   text-align: center;

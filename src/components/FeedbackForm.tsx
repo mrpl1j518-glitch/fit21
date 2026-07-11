@@ -87,8 +87,12 @@ export function FeedbackForm({ clientId, clientName }: FeedbackFormProps) {
                   placeholder="Cuéntanos qué te gusta o qué mejorarías..."
                   rows={3}
                   maxLength={500}
+                  aria-describedby="feedback-char-count"
                 />
               </label>
+              <p id="feedback-char-count" className="feedback-form__char-count">
+                {message.length}/500
+              </p>
               {error && <p className="feedback-form__error">{error}</p>}
               <button
                 type="button"

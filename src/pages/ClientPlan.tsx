@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Logo } from '../components/Logo';
 import { DayPips } from '../components/DayPips';
+import { WeekPips } from '../components/WeekPips';
 import { MediaPlayer } from '../components/MediaPlayer';
 import { InstallHint } from '../components/InstallHint';
 import { WeekCelebration } from '../components/WeekCelebration';
@@ -32,6 +33,7 @@ import {
   getWeekStartKey,
   formatSpanishDate,
   dateKeyForDayIndex,
+  dateForDayIndex,
   daysSinceDate,
 } from '../lib/dates';
 import {
@@ -62,6 +64,9 @@ export function ClientPlan() {
   const [notFound, setNotFound] = useState(false);
   const [routine, setRoutine] = useState<Routine | null>(null);
   const [nutrition, setNutrition] = useState<NutritionPlan | null>(null);
+  const [routineLoaded, setRoutineLoaded] = useState(false);
+  const [nutritionLoaded, setNutritionLoaded] = useState(false);
+  const [weekProgress, setWeekProgress] = useState<Record<string, boolean>>({});
   const [dayComplete, setDayCompleteState] = useState(false);
   const [progressCount, setProgressCount] = useState(0);
   const [cycleStartedAt, setCycleStartedAt] = useState<string | undefined>();
@@ -71,7 +76,9 @@ export function ClientPlan() {
   const weekStart = getWeekStartKey();
   const selectedDateKey = dateKeyForDayIndex(selectedDay);
   const isToday = selectedDay === todayIndex;
-  const todayLabel = formatSpanishDate(new Date());
+  const headerDateLabel = isToday
+    ? formatSpanishDate(new Date())
+    : formatSpanishDate(dateForDayIndex(selectedDay));
 
   useEffect(() => {
     if (!clientId) return;
@@ -136,20 +143,30 @@ export function ClientPlan() {
 
   useEffect(() => {
     if (!clientId) return;
-    return subscribeRoutine(clientId, selectedDay, setRoutine);
-  }, [clientId, selectedDay]);
-
-  useEffect(() => {
-    if (!clientId) return;
-    return subscribeNutrition(clientId, selectedDay, setNutrition);
-  }, [clientId, selectedDay]);
-
-  useEffect(() => {
-    if (!clientId) return;
-    return subscribeWeekProgress(clientId, weekStart, (progress) => {
-      setDayCompleteState(Boolean(progress[selectedDateKey]));
+    setRoutineLoaded(false);
+    return subscribeRoutine(clientId, selectedDay, (data) => {
+      setRoutine(data);
+      setRoutineLoaded(true);
     });
-  }, [clientId, weekStart, selectedDateKey]);
+  }, [clientId, selectedDay]);
+
+  useEffect(() => {
+    if (!clientId) return;
+    setNutritionLoaded(false);
+    return subscribeNutrition(clientId, selectedDay, (data) => {
+      setNutrition(data);
+      setNutritionLoaded(true);
+    });
+  }, [clientId, selectedDay]);
+
+  useEffect(() => {
+    if (!clientId) return;
+    return subscribeWeekProgress(clientId, weekStart, setWeekProgress);
+  }, [clientId, weekStart]);
+
+  useEffect(() => {
+    setDayCompleteState(Boolean(weekProgress[selectedDateKey]));
+  }, [weekProgress, selectedDateKey]);
 
   useEffect(() => {
     if (!clientId) return;
@@ -220,7 +237,7 @@ export function ClientPlan() {
                 <span className="client-greeting__skeleton" aria-label="Cargando nombre" />
               )}
             </p>
-            <p className="client-date">{todayLabel}</p>
+            <p className="client-date">{headerDateLabel}</p>
             <p className="client-cycle">
               Día <strong>{cycleDay}</strong> de tu ciclo de {CYCLE_DAYS}
             </p>
@@ -251,6 +268,7 @@ export function ClientPlan() {
       <section className="progress-section card">
         <p className="section-title">Tu avance</p>
         <DayPips count={progressCount} />
+        <WeekPips progress={weekProgress} />
         <label className={`complete-check ${dayComplete ? 'complete-check--done' : ''}`}>
           <input
             type="checkbox"
@@ -274,11 +292,20 @@ export function ClientPlan() {
             {routine?.classification && (
               <span className="routine-meta">{routine.classification}</span>
             )}
+            {routine?.level && (
+              <span className="routine-meta routine-meta--level">{routine.level}</span>
+            )}
           </div>
         </div>
         {routine?.comment && <p className="routine-comment">{routine.comment}</p>}
 
-        {exercises.length === 0 ? (
+        {!routineLoaded ? (
+          <div className="section-skeleton" aria-label="Cargando rutina">
+            <span className="skeleton section-skeleton__line" />
+            <span className="skeleton section-skeleton__block" />
+            <span className="skeleton section-skeleton__block" />
+          </div>
+        ) : exercises.length === 0 ? (
           <div className="empty-state">
             <span className="empty-mark" aria-hidden />
             <p className="empty-state__title">Sin ejercicios asignados</p>
@@ -332,7 +359,12 @@ export function ClientPlan() {
           <p className="section-title">Alimentación</p>
           <h2>{DAY_NAMES[selectedDay]}</h2>
         </div>
-        {!hasNutrition ? (
+        {!nutritionLoaded ? (
+          <div className="section-skeleton" aria-label="Cargando alimentación">
+            <span className="skeleton section-skeleton__line" />
+            <span className="skeleton section-skeleton__block" />
+          </div>
+        ) : !hasNutrition ? (
           <div className="empty-state">
             <span className="empty-mark empty-mark--teal" aria-hidden />
             <p className="empty-state__title">Sin plan de nutrición</p>
