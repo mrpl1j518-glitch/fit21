@@ -55,6 +55,8 @@ export interface NutritionPlan {
   planName?: string;
   objective?: string;
   dietType?: string;
+  /** Calorías totales del día / plan */
+  calories?: string;
   meals: Meal[];
 }
 

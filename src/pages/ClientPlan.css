@@ -254,8 +254,21 @@
 .plan-meta {
   font-size: 0.85rem;
   color: var(--text-muted);
-  margin: 0 0 1rem;
+  margin: 0 0 0.5rem;
   text-transform: capitalize;
+}
+
+.plan-calories {
+  margin: 0 0 1rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--fit21-purple);
+}
+
+.plan-calories strong {
+  color: var(--fit21-teal);
+  font-size: 1.35rem;
+  font-weight: 900;
 }
 
 .client-meal {

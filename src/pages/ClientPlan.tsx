@@ -226,6 +226,11 @@ export function ClientPlan() {
                 {[nutrition!.objective, nutrition!.dietType].filter(Boolean).join(' · ')}
               </p>
             )}
+            {nutrition!.calories && (
+              <p className="plan-calories">
+                <strong>{nutrition!.calories}</strong> calorías
+              </p>
+            )}
             {nutrition!.meals.map((meal) => (
               <div key={meal.id} className="client-meal">
                 <h3>{meal.mealName}</h3>

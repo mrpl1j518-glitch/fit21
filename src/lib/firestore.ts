@@ -135,6 +135,7 @@ export async function saveNutrition(
     planName: plan.planName ?? '',
     objective: plan.objective ?? '',
     dietType: plan.dietType ?? '',
+    calories: plan.calories ?? '',
     savedAt: new Date().toISOString(),
   });
 }

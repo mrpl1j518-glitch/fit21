@@ -41,6 +41,7 @@ const emptyNutrition = (): NutritionPlan => ({
   planName: '',
   objective: '',
   dietType: '',
+  calories: '',
   meals: [],
 });
 
@@ -422,6 +423,15 @@ export function CoachClientEdit() {
                     <option key={d} value={d}>{d}</option>
                   ))}
                 </select>
+              </label>
+              <label>
+                Calorías del día
+                <input
+                  value={nutrition.calories ?? ''}
+                  onChange={(e) => setNutrition((n) => ({ ...n, calories: e.target.value.replace(/[^\d]/g, '') }))}
+                  placeholder="Ej. 2000"
+                  inputMode="numeric"
+                />
               </label>
             </div>
           </div>
