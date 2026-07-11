@@ -1,0 +1,6 @@
+.plan-meta {
+  margin: 0 0 var(--space-md);
+  font-size: var(--font-caption);
+  color: var(--color-text-muted);
+  line-height: 1.45;
+}

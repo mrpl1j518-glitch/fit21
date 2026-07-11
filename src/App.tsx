@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, Link } from 'react-router-dom';
 import { CoachAuthGate, useCoachAuth } from './components/CoachAuthGate';
 import { CoachDashboard } from './pages/CoachDashboard';
 import { CoachClientEdit } from './pages/CoachClientEdit';
@@ -7,6 +7,10 @@ import { ExerciseLibrary } from './pages/ExerciseLibrary';
 import { ClientPlan } from './pages/ClientPlan';
 import { Logo } from './components/Logo';
 import { isFirebaseConfigured } from './lib/firebase';
+import {
+  getRememberedClientId,
+  isStandaloneDisplay,
+} from './lib/clientPlanStorage';
 import './App.css';
 
 function CoachLayout() {
@@ -35,15 +39,35 @@ function CoachLayout() {
 }
 
 function Home() {
+  // PWA instalada: abrir el último plan de usuaria, no la landing de coach
+  const remembered = getRememberedClientId();
+  if (isStandaloneDisplay() && remembered) {
+    return <Navigate to={`/plan/${remembered}`} replace />;
+  }
+
+  const standaloneWithoutPlan = isStandaloneDisplay() && !remembered;
+
   return (
     <div className="home">
       <Logo size="lg" showTagline />
-      <p className="home__text">
-        Tu rutina y plan de alimentación, siempre a la mano.
-      </p>
-      <a href="/coach" className="btn btn--primary">
+      {standaloneWithoutPlan ? (
+        <>
+          <p className="home__text">
+            Abre el link personal que te envió tu coach (por WhatsApp) para ver tu plan.
+          </p>
+          <p className="home__hint">
+            Después de abrirlo una vez, esta app recordará tu acceso.
+          </p>
+        </>
+      ) : (
+        <p className="home__text">
+          Tu rutina y plan de alimentación, siempre a la mano.
+        </p>
+      )}
+      {/* Acceso coach discreto: las clientas no deben llegar aquí al instalar su plan */}
+      <Link to="/coach" className="home__coach-link">
         Acceso coach
-      </a>
+      </Link>
       {!isFirebaseConfigured && (
         <p className="home__warn">
           Firebase no configurado. Copia <code>.env.example</code> a <code>.env</code> y agrega tus credenciales.

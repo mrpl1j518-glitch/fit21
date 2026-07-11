@@ -1,0 +1,56 @@
+.install-hint {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+  padding: var(--space-md) var(--space-lg);
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(20, 166, 166, 0.25);
+  background: linear-gradient(
+    135deg,
+    rgba(59, 30, 120, 0.05) 0%,
+    rgba(20, 166, 166, 0.08) 100%
+  );
+  box-shadow: var(--shadow-sm);
+}
+
+.install-hint__content {
+  flex: 1;
+  min-width: 0;
+}
+
+.install-hint__title {
+  margin: 0 0 var(--space-xs);
+  font-size: var(--font-caption);
+  font-weight: var(--weight-bold);
+  color: var(--color-primary);
+  line-height: 1.35;
+}
+
+.install-hint__body {
+  margin: 0;
+  font-size: var(--font-label);
+  font-weight: var(--weight-medium);
+  color: var(--color-text-muted);
+  line-height: 1.45;
+}
+
+.install-hint__close {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.7);
+  color: var(--color-text-muted);
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.install-hint__close:hover {
+  background: white;
+  color: var(--color-primary);
+}

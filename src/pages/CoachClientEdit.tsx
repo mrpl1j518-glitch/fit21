@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { nanoid } from 'nanoid';
 import { MediaPlayer } from '../components/MediaPlayer';
 import { ExercisePicker, type PickedExercise } from '../components/ExercisePicker';
+import { PlanMeta } from '../components/PlanMeta';
 import {
   subscribeClients,
   subscribeRoutine,
@@ -11,6 +12,7 @@ import {
   saveNutrition,
   clearRoutineDay,
   clearNutritionDay,
+  pushClientNotification,
 } from '../lib/firestore';
 import { formatFirebaseError } from '../lib/mediaUrl';
 import {
@@ -48,6 +50,18 @@ const emptyNutrition = (): NutritionPlan => ({
   meals: [],
 });
 
+function hasNutritionContent(plan: NutritionPlan): boolean {
+  if ((plan.planName ?? '').trim()) return true;
+  if ((plan.objective ?? '').trim()) return true;
+  if ((plan.dietType ?? '').trim()) return true;
+  if ((plan.calories ?? '').trim()) return true;
+  return plan.meals.some(
+    (meal) =>
+      (meal.mealName ?? '').trim() ||
+      meal.foods.some((food) => (food.name ?? '').trim() || (food.equivalents ?? '').trim())
+  );
+}
+
 export function CoachClientEdit() {
   const { clientId } = useParams<{ clientId: string }>();
   const [clientName, setClientName] = useState('');
@@ -61,6 +75,7 @@ export function CoachClientEdit() {
   const [error, setError] = useState('');
   const [routineDirty, setRoutineDirty] = useState(false);
   const [nutritionDirty, setNutritionDirty] = useState(false);
+  const [notifyClient, setNotifyClient] = useState(false);
 
   useEffect(() => {
     if (!clientId) return;
@@ -102,6 +117,13 @@ export function CoachClientEdit() {
     setError('');
     try {
       await saveRoutine(clientId, dayIndex, routine);
+      if (notifyClient) {
+        await pushClientNotification(
+          clientId,
+          `Tu rutina del ${DAY_NAMES[dayIndex].toLowerCase()} fue actualizada`
+        );
+        setNotifyClient(false);
+      }
       setRoutineDirty(false);
       flashSaved();
     } catch (e) {
@@ -117,6 +139,13 @@ export function CoachClientEdit() {
     setError('');
     try {
       await saveNutrition(clientId, dayIndex, nutrition);
+      if (notifyClient) {
+        await pushClientNotification(
+          clientId,
+          `Tu plan de alimentación del ${DAY_NAMES[dayIndex].toLowerCase()} fue actualizado`
+        );
+        setNotifyClient(false);
+      }
       setNutritionDirty(false);
       flashSaved();
     } catch (e) {
@@ -191,6 +220,19 @@ export function CoachClientEdit() {
       ...r,
       exercises: r.exercises.filter((e) => e.id !== id),
     }));
+  };
+
+  const moveExercise = (id: string, direction: 'up' | 'down') => {
+    setRoutineDirty(true);
+    setRoutine((r) => {
+      const idx = r.exercises.findIndex((e) => e.id === id);
+      if (idx < 0) return r;
+      const target = direction === 'up' ? idx - 1 : idx + 1;
+      if (target < 0 || target >= r.exercises.length) return r;
+      const exercises = [...r.exercises];
+      [exercises[idx], exercises[target]] = [exercises[target], exercises[idx]];
+      return { ...r, exercises };
+    });
   };
 
   const addMeal = (preset?: string) => {
@@ -293,6 +335,13 @@ export function CoachClientEdit() {
 
           <div className="card day-card">
             <p className="day-card__label">{DAY_NAMES[dayIndex]}</p>
+            <PlanMeta
+              label="Rutina"
+              gender="f"
+              createdAt={routine.createdAt}
+              updatedAt={routine.updatedAt}
+              hasContent={routine.exercises.length > 0}
+            />
 
             <label>
               Nombre de la rutina
@@ -376,6 +425,26 @@ export function CoachClientEdit() {
                       ))}
                     </select>
                     <span className="exercise-num">{idx + 1}</span>
+                    <div className="exercise-card__reorder">
+                      <button
+                        type="button"
+                        className="reorder-btn"
+                        onClick={() => moveExercise(ex.id, 'up')}
+                        disabled={idx === 0}
+                        aria-label={`Subir ejercicio ${idx + 1}`}
+                      >
+                        ↑
+                      </button>
+                      <button
+                        type="button"
+                        className="reorder-btn"
+                        onClick={() => moveExercise(ex.id, 'down')}
+                        disabled={idx === routine.exercises.length - 1}
+                        aria-label={`Bajar ejercicio ${idx + 1}`}
+                      >
+                        ↓
+                      </button>
+                    </div>
                     <button type="button" className="icon-btn" onClick={() => removeExercise(ex.id)} aria-label="Quitar">
                       🗑
                     </button>
@@ -402,7 +471,7 @@ export function CoachClientEdit() {
                     </label>
                   </div>
 
-                  <p className="field-label">Tiempo de descanso</p>
+                  <p className="field-label">Descanso entre series</p>
                   <div className="field-row">
                     <label>
                       Min
@@ -438,6 +507,14 @@ export function CoachClientEdit() {
 
           <div className="sticky-actions">
             {error && <p className="form-error sticky-error">{error}</p>}
+            <label className="notify-client-check">
+              <input
+                type="checkbox"
+                checked={notifyClient}
+                onChange={(e) => setNotifyClient(e.target.checked)}
+              />
+              <span>Notificar a la clienta</span>
+            </label>
             <button
               type="button"
               className="btn btn--danger btn--block"
@@ -477,6 +554,13 @@ export function CoachClientEdit() {
 
           <div className="card">
             <p className="day-card__label">Plan · {DAY_NAMES[dayIndex]}</p>
+            <PlanMeta
+              label="Plan alimenticio"
+              gender="m"
+              createdAt={nutrition.createdAt}
+              updatedAt={nutrition.updatedAt}
+              hasContent={hasNutritionContent(nutrition)}
+            />
             <label>
               Nombre del plan alimenticio
               <input
@@ -617,6 +701,14 @@ export function CoachClientEdit() {
 
           <div className="sticky-actions">
             {error && <p className="form-error sticky-error">{error}</p>}
+            <label className="notify-client-check">
+              <input
+                type="checkbox"
+                checked={notifyClient}
+                onChange={(e) => setNotifyClient(e.target.checked)}
+              />
+              <span>Notificar a la clienta</span>
+            </label>
             <button
               type="button"
               className="btn btn--danger btn--block"

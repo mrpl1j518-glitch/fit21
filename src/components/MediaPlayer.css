@@ -2,12 +2,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #f3f0f8 0%, #e8f7f7 100%);
-  border: 2px dashed #c9b8e0;
-  border-radius: 12px;
-  color: #3B1E78;
-  font-size: 0.85rem;
-  font-weight: 600;
+  background: var(--color-bg);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text-muted);
+  font-size: var(--font-caption);
+  font-weight: var(--weight-medium);
   min-height: 160px;
   width: 100%;
   max-width: 100%;
@@ -45,10 +45,11 @@
   width: 100%;
   max-width: 100%;
   height: auto;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   object-fit: contain;
   max-height: 280px;
-  background: #f0f0f0;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border-subtle);
 }
 
 .media-video--compact,

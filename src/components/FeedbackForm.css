@@ -1,0 +1,100 @@
+.feedback-form {
+  margin-top: var(--space-lg);
+  padding-top: var(--space-lg);
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+.feedback-form__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: white;
+  color: var(--color-primary);
+  font-size: var(--font-caption);
+  font-weight: var(--weight-semibold);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.feedback-form__toggle:hover {
+  border-color: var(--color-accent);
+  background: rgba(20, 166, 166, 0.04);
+}
+
+.feedback-form__panel {
+  margin-top: var(--space-md);
+}
+
+.feedback-form__label {
+  margin: 0 0 var(--space-sm);
+  font-size: var(--font-body);
+  font-weight: var(--weight-semibold);
+  color: var(--color-primary);
+}
+
+.feedback-form__ratings {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-md);
+}
+
+.feedback-form__rating {
+  flex: 1;
+  padding: var(--space-sm) 0;
+  border: 2px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  font-size: 1.35rem;
+  cursor: pointer;
+  transition: border-color 0.15s ease, transform 0.15s ease, background 0.15s ease;
+}
+
+.feedback-form__rating:hover {
+  border-color: var(--color-accent);
+  transform: scale(1.05);
+}
+
+.feedback-form__rating--active {
+  border-color: var(--color-accent);
+  background: rgba(20, 166, 166, 0.1);
+  transform: scale(1.08);
+}
+
+.feedback-form__message-label {
+  display: block;
+  margin-bottom: var(--space-md);
+  font-size: var(--font-label);
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-subtle);
+}
+
+.feedback-form__message-label textarea {
+  display: block;
+  width: 100%;
+  margin-top: var(--space-xs);
+  text-transform: none;
+  letter-spacing: normal;
+  font-weight: var(--weight-regular);
+  resize: vertical;
+}
+
+.feedback-form__error {
+  margin: 0 0 var(--space-sm);
+  font-size: var(--font-caption);
+  color: #c62828;
+}
+
+.feedback-form__thanks {
+  margin: 0;
+  text-align: center;
+  font-size: var(--font-body);
+  font-weight: var(--weight-semibold);
+  color: var(--color-accent);
+  padding: var(--space-md) 0;
+}

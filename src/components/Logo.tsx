@@ -1,3 +1,5 @@
+import './Logo.css';
+
 interface LogoProps {
   size?: 'sm' | 'md' | 'lg';
   showTagline?: boolean;

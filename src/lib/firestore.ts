@@ -1,6 +1,8 @@
 import {
   collection,
   doc,
+  getDoc,
+  getDocs,
   setDoc,
   deleteDoc,
   onSnapshot,
@@ -9,6 +11,8 @@ import {
 import { nanoid } from 'nanoid';
 import { db } from './firebase';
 import { normalizeMediaUrl } from './mediaUrl';
+import { daysSinceDate, startOfTodayIso } from './dates';
+import { CYCLE_DAYS } from '../types';
 import type {
   Client,
   LibraryExercise,
@@ -16,6 +20,9 @@ import type {
   Routine,
   WeekProgress,
   ProgressCount,
+  ClientNotification,
+  ClientNotificationsDoc,
+  ClientFeedback,
 } from '../types';
 
 function requireDb() {
@@ -34,6 +41,22 @@ export function subscribeClients(onData: (clients: Record<string, Client>) => vo
       data[d.id] = d.data() as Client;
     });
     onData(data);
+  });
+}
+
+/** Lectura puntual de una clienta (más rápido que suscribir toda la colección). */
+export async function getClient(clientId: string): Promise<Client | null> {
+  const snap = await getDoc(doc(requireDb(), 'clients', clientId));
+  return snap.exists() ? (snap.data() as Client) : null;
+}
+
+/** Suscripción a un solo documento de clienta. */
+export function subscribeClient(
+  clientId: string,
+  onData: (client: Client | null) => void
+): Unsubscribe {
+  return onSnapshot(doc(requireDb(), 'clients', clientId), (snap) => {
+    onData(snap.exists() ? (snap.data() as Client) : null);
   });
 }
 
@@ -71,14 +94,26 @@ export async function saveRoutine(
 ) {
   const firestore = requireDb();
   const docId = `${clientId}_${dayIndex}`;
-  await setDoc(doc(firestore, 'routines', docId), routine);
+  const ref = doc(firestore, 'routines', docId);
+  const snap = await getDoc(ref);
+  const now = new Date().toISOString();
+  const existing = snap.exists() ? (snap.data() as Routine) : null;
+  const payload: Routine = {
+    ...routine,
+    createdAt: existing?.createdAt ?? now,
+    updatedAt: now,
+  };
+  await setDoc(ref, payload);
+  if (routine.exercises.length > 0) {
+    await ensureClientCycleStarted(clientId);
+  }
   await setDoc(doc(firestore, 'routineHistory', nanoid()), {
     clientId,
     dayIndex,
     exercises: routine.exercises,
     dayName: routine.dayName ?? '',
     comment: routine.comment ?? '',
-    savedAt: new Date().toISOString(),
+    savedAt: now,
   });
 }
 
@@ -129,7 +164,16 @@ export async function saveNutrition(
 ) {
   const firestore = requireDb();
   const docId = `${clientId}_${dayIndex}`;
-  await setDoc(doc(firestore, 'nutrition', docId), plan);
+  const ref = doc(firestore, 'nutrition', docId);
+  const snap = await getDoc(ref);
+  const now = new Date().toISOString();
+  const existing = snap.exists() ? (snap.data() as NutritionPlan) : null;
+  const payload: NutritionPlan = {
+    ...plan,
+    createdAt: existing?.createdAt ?? now,
+    updatedAt: now,
+  };
+  await setDoc(ref, payload);
   // Si había un plan “global” viejo, lo limpiamos para que no reaparezca
   try {
     await deleteDoc(doc(firestore, 'nutrition', clientId));
@@ -144,7 +188,7 @@ export async function saveNutrition(
     objective: plan.objective ?? '',
     dietType: plan.dietType ?? '',
     calories: plan.calories ?? '',
-    savedAt: new Date().toISOString(),
+    savedAt: now,
   });
 }
 
@@ -211,7 +255,7 @@ async function incrementProgressCount(clientId: string, delta: number) {
       async (snap) => {
         unsub();
         const current = snap.exists() ? (snap.data() as ProgressCount).count : 0;
-        const next = Math.max(0, Math.min(21, current + delta));
+        const next = Math.max(0, Math.min(CYCLE_DAYS, current + delta));
         try {
           await setDoc(ref, { count: next }, { merge: true });
           resolve();
@@ -233,24 +277,187 @@ export function subscribeProgressCount(
   });
 }
 
+async function getEarliestRoutineCreatedAt(clientId: string): Promise<string | null> {
+  const firestore = requireDb();
+  const dates: string[] = [];
+
+  for (let i = 0; i < 7; i++) {
+    const snap = await getDoc(doc(firestore, 'routines', `${clientId}_${i}`));
+    if (!snap.exists()) continue;
+    const routine = snap.data() as Routine;
+    if (routine.createdAt && routine.exercises.length > 0) {
+      dates.push(routine.createdAt);
+    }
+  }
+
+  if (dates.length === 0) return null;
+  return dates.sort()[0];
+}
+
+async function ensureClientCycleStarted(clientId: string) {
+  const firestore = requireDb();
+  const ref = doc(firestore, 'clients', clientId);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) return;
+  const client = snap.data() as Client;
+  if (client.cycleStartedAt) return;
+  await setDoc(ref, { cycleStartedAt: startOfTodayIso() }, { merge: true });
+}
+
+async function resetClientCycle(clientId: string) {
+  const firestore = requireDb();
+  await setDoc(doc(firestore, 'progressCount', clientId), { count: 0 });
+
+  const weekProgressSnap = await getDocs(collection(firestore, 'weekProgress'));
+  await Promise.all(
+    weekProgressSnap.docs
+      .filter((entry) => entry.id.startsWith(`${clientId}_`))
+      .map((entry) => deleteDoc(entry.ref))
+  );
+
+  await setDoc(
+    doc(firestore, 'clients', clientId),
+    { cycleStartedAt: startOfTodayIso() },
+    { merge: true }
+  );
+}
+
+/** Reinicia el ciclo si ya pasaron 28 días desde el inicio. Migra cycleStartedAt si falta. */
+export async function ensureActiveCycle(clientId: string): Promise<Client | null> {
+  const firestore = requireDb();
+  const ref = doc(firestore, 'clients', clientId);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) return null;
+
+  let client = snap.data() as Client;
+  let cycleStartedAt = client.cycleStartedAt;
+
+  if (!cycleStartedAt) {
+    cycleStartedAt = (await getEarliestRoutineCreatedAt(clientId)) ?? undefined;
+    if (cycleStartedAt) {
+      await setDoc(ref, { cycleStartedAt }, { merge: true });
+      client = { ...client, cycleStartedAt };
+    } else {
+      return client;
+    }
+  }
+
+  if (daysSinceDate(cycleStartedAt) >= CYCLE_DAYS) {
+    await resetClientCycle(clientId);
+    const refreshed = await getDoc(ref);
+    return refreshed.exists() ? (refreshed.data() as Client) : null;
+  }
+
+  return client;
+}
+
+export interface ClientPlanMeta {
+  hasRoutine: boolean;
+  routineCreatedAt: string | null;
+  routineUpdatedAt: string | null;
+  hasNutrition: boolean;
+  nutritionCreatedAt: string | null;
+  nutritionUpdatedAt: string | null;
+}
+
+function hasRoutineContent(routine: Routine | null): boolean {
+  return Boolean(routine && routine.exercises.length > 0);
+}
+
+function hasNutritionContent(plan: NutritionPlan | null): boolean {
+  if (!plan) return false;
+  if ((plan.planName ?? '').trim()) return true;
+  if ((plan.objective ?? '').trim()) return true;
+  if ((plan.dietType ?? '').trim()) return true;
+  if ((plan.calories ?? '').trim()) return true;
+  return plan.meals.some(
+    (meal) =>
+      (meal.mealName ?? '').trim() ||
+      meal.foods.some((food) => (food.name ?? '').trim() || (food.equivalents ?? '').trim())
+  );
+}
+
+function earliestDate(dates: (string | undefined | null)[]): string | null {
+  const valid = dates.filter((value): value is string => Boolean(value));
+  if (valid.length === 0) return null;
+  return valid.sort()[0];
+}
+
+function latestDate(dates: (string | undefined | null)[]): string | null {
+  const valid = dates.filter((value): value is string => Boolean(value));
+  if (valid.length === 0) return null;
+  return valid.sort().reverse()[0];
+}
+
+function buildClientPlanMeta(
+  routines: (Routine | null)[],
+  nutritionPlans: (NutritionPlan | null)[]
+): ClientPlanMeta {
+  const activeRoutines = routines.filter(hasRoutineContent) as Routine[];
+  const activeNutrition = nutritionPlans.filter(hasNutritionContent) as NutritionPlan[];
+
+  return {
+    hasRoutine: activeRoutines.length > 0,
+    routineCreatedAt: earliestDate(activeRoutines.map((routine) => routine.createdAt)),
+    routineUpdatedAt: latestDate(activeRoutines.map((routine) => routine.updatedAt ?? routine.createdAt)),
+    hasNutrition: activeNutrition.length > 0,
+    nutritionCreatedAt: earliestDate(activeNutrition.map((plan) => plan.createdAt)),
+    nutritionUpdatedAt: latestDate(activeNutrition.map((plan) => plan.updatedAt ?? plan.createdAt)),
+  };
+}
+
 export function subscribeAllRoutinesForClient(
   clientId: string,
   onData: (hasAny: boolean) => void
 ): Unsubscribe {
+  return subscribeClientPlanMeta(clientId, (meta) => onData(meta.hasRoutine));
+}
+
+export function subscribeClientPlanMeta(
+  clientId: string,
+  onData: (meta: ClientPlanMeta) => void
+): Unsubscribe {
   const firestore = requireDb();
   const unsubs: Unsubscribe[] = [];
-  let routines: (Routine | null)[] = Array(7).fill(null);
+  const routines: (Routine | null)[] = Array(7).fill(null);
+  const nutritionPlans: (NutritionPlan | null)[] = Array(7).fill(null);
+  let legacyNutrition: NutritionPlan | null = null;
+  let legacyReady = false;
+  const dayReady = Array(7).fill(false);
+  const routineReady = Array(7).fill(false);
+
+  const emit = () => {
+    if (!legacyReady || dayReady.some((ready) => !ready) || routineReady.some((ready) => !ready)) {
+      return;
+    }
+    const plans = legacyNutrition ? [...nutritionPlans, legacyNutrition] : nutritionPlans;
+    onData(buildClientPlanMeta(routines, plans));
+  };
 
   for (let i = 0; i < 7; i++) {
-    const unsub = onSnapshot(doc(firestore, 'routines', `${clientId}_${i}`), (snap) => {
+    const routineUnsub = onSnapshot(doc(firestore, 'routines', `${clientId}_${i}`), (snap) => {
       routines[i] = snap.exists() ? (snap.data() as Routine) : null;
-      const hasAny = routines.some((r) => r && r.exercises.length > 0);
-      onData(hasAny);
+      routineReady[i] = true;
+      emit();
     });
-    unsubs.push(unsub);
+    unsubs.push(routineUnsub);
+
+    const nutritionUnsub = onSnapshot(doc(firestore, 'nutrition', `${clientId}_${i}`), (snap) => {
+      nutritionPlans[i] = snap.exists() ? (snap.data() as NutritionPlan) : null;
+      dayReady[i] = true;
+      emit();
+    });
+    unsubs.push(nutritionUnsub);
   }
 
-  return () => unsubs.forEach((u) => u());
+  const legacyUnsub = onSnapshot(doc(firestore, 'nutrition', clientId), (snap) => {
+    legacyNutrition = snap.exists() ? (snap.data() as NutritionPlan) : null;
+    legacyReady = true;
+    emit();
+  });
+  unsubs.push(legacyUnsub);
+
+  return () => unsubs.forEach((unsub) => unsub());
 }
 
 export function subscribeLibraryExercises(
@@ -283,4 +490,78 @@ export async function saveLibraryExercise(
 
 export async function deleteLibraryExercise(id: string) {
   await deleteDoc(doc(requireDb(), 'library-exercises', id));
+}
+
+const MAX_NOTIFICATIONS = 10;
+
+export async function pushClientNotification(clientId: string, text: string) {
+  const firestore = requireDb();
+  const ref = doc(firestore, 'clientNotifications', clientId);
+  const entry: ClientNotification = {
+    id: nanoid(8),
+    text,
+    createdAt: new Date().toISOString(),
+    read: false,
+  };
+
+  const snap = await getDoc(ref);
+  const existing = snap.exists()
+    ? ((snap.data() as ClientNotificationsDoc).messages ?? [])
+    : [];
+
+  const messages = [entry, ...existing].slice(0, MAX_NOTIFICATIONS);
+  await setDoc(ref, { messages }, { merge: true });
+}
+
+export function subscribeClientNotifications(
+  clientId: string,
+  onData: (messages: ClientNotification[]) => void
+): Unsubscribe {
+  return onSnapshot(doc(requireDb(), 'clientNotifications', clientId), (snap) => {
+    const data = snap.exists() ? (snap.data() as ClientNotificationsDoc) : { messages: [] };
+    onData((data.messages ?? []).slice(0, MAX_NOTIFICATIONS));
+  });
+}
+
+export async function markNotificationsRead(clientId: string) {
+  const firestore = requireDb();
+  const ref = doc(firestore, 'clientNotifications', clientId);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) return;
+  const messages = ((snap.data() as ClientNotificationsDoc).messages ?? []).map((m) => ({
+    ...m,
+    read: true,
+  }));
+  await setDoc(ref, { messages }, { merge: true });
+}
+
+export async function submitClientFeedback(
+  clientId: string,
+  clientName: string,
+  rating: number,
+  message: string
+) {
+  const firestore = requireDb();
+  const id = nanoid(10);
+  const payload: ClientFeedback = {
+    clientId,
+    clientName,
+    rating,
+    message: message.trim(),
+    createdAt: new Date().toISOString(),
+  };
+  await setDoc(doc(firestore, 'feedback', id), payload);
+}
+
+export function subscribeFeedback(
+  onData: (items: (ClientFeedback & { id: string })[]) => void
+): Unsubscribe {
+  return onSnapshot(collection(requireDb(), 'feedback'), (snap) => {
+    const items: (ClientFeedback & { id: string })[] = [];
+    snap.forEach((d) => {
+      items.push({ id: d.id, ...(d.data() as ClientFeedback) });
+    });
+    items.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    onData(items);
+  });
 }

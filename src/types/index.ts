@@ -34,6 +34,8 @@ export interface Routine {
   classification?: string;
   level?: string;
   exercises: Exercise[];
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface Food {
@@ -58,11 +60,15 @@ export interface NutritionPlan {
   /** Calorías totales del día / plan */
   calories?: string;
   meals: Meal[];
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface Client {
   name: string;
   createdAt?: string;
+  /** Inicio del ciclo actual de 28 días (desde la primera rutina asignada). */
+  cycleStartedAt?: string;
 }
 
 export interface WeekProgress {
@@ -71,6 +77,25 @@ export interface WeekProgress {
 
 export interface ProgressCount {
   count: number;
+}
+
+export interface ClientNotification {
+  id: string;
+  text: string;
+  createdAt: string;
+  read?: boolean;
+}
+
+export interface ClientNotificationsDoc {
+  messages: ClientNotification[];
+}
+
+export interface ClientFeedback {
+  clientId: string;
+  clientName: string;
+  rating: number;
+  message: string;
+  createdAt: string;
 }
 
 export interface RoutineHistoryEntry {
@@ -131,6 +156,10 @@ export const DIET_TYPES = [
 ] as const;
 
 export const MEAL_PRESETS = ['Desayuno', 'Comida', 'Cena', 'Snack'] as const;
+
+/** Duración del ciclo de constancia (marca FIT21, ciclo de 28 días). */
+export const CYCLE_DAYS = 28;
+export const MILESTONE_DAYS = 7;
 
 export function formatRest(ex: Exercise): string {
   if (ex.restMin || ex.restSec) {

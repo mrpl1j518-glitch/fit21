@@ -1,11 +1,12 @@
 import './DayPips.css';
+import { CYCLE_DAYS } from '../types';
 
 interface DayPipsProps {
   count: number;
   total?: number;
 }
 
-export function DayPips({ count, total = 21 }: DayPipsProps) {
+export function DayPips({ count, total = CYCLE_DAYS }: DayPipsProps) {
   const filled = Math.min(count, total);
 
   return (

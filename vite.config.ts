@@ -16,7 +16,9 @@ export default defineConfig({
         background_color: '#FAFAFA',
         display: 'standalone',
         orientation: 'portrait',
+        // Fallback; en /plan/:id se sustituye por un manifest dinámico con start_url del plan
         start_url: '/',
+        id: '/',
         icons: [
           {
             src: '/fit21-logo.png',

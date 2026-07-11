@@ -3,18 +3,26 @@ import { useParams } from 'react-router-dom';
 import { Logo } from '../components/Logo';
 import { DayPips } from '../components/DayPips';
 import { MediaPlayer } from '../components/MediaPlayer';
+import { InstallHint } from '../components/InstallHint';
+import { WeekCelebration } from '../components/WeekCelebration';
+import { NotificationBell } from '../components/NotificationBell';
+import { FeedbackForm } from '../components/FeedbackForm';
 import {
-  subscribeClients,
+  getClient,
+  subscribeClient,
   subscribeRoutine,
   subscribeNutrition,
   subscribeWeekProgress,
   subscribeProgressCount,
   setDayComplete,
+  ensureActiveCycle,
 } from '../lib/firestore';
 import {
   DAY_NAMES,
   DAY_SHORT,
   formatRest,
+  CYCLE_DAYS,
+  MILESTONE_DAYS,
   type Routine,
   type NutritionPlan,
   type Exercise,
@@ -24,7 +32,13 @@ import {
   getWeekStartKey,
   formatSpanishDate,
   dateKeyForDayIndex,
+  daysSinceDate,
 } from '../lib/dates';
+import {
+  rememberClientPlan,
+  getCachedClientName,
+  cacheClientName,
+} from '../lib/clientPlanStorage';
 import './ClientPlan.css';
 
 const TAG_LABELS: Record<string, string> = {
@@ -40,13 +54,17 @@ export function ClientPlan() {
   const { clientId } = useParams<{ clientId: string }>();
   const todayIndex = getDayIndex();
   const [selectedDay, setSelectedDay] = useState(todayIndex);
-  const [clientName, setClientName] = useState('');
+  const [clientName, setClientName] = useState(() =>
+    clientId ? getCachedClientName(clientId) ?? '' : ''
+  );
   const [notFound, setNotFound] = useState(false);
   const [routine, setRoutine] = useState<Routine | null>(null);
   const [nutrition, setNutrition] = useState<NutritionPlan | null>(null);
   const [dayComplete, setDayCompleteState] = useState(false);
   const [progressCount, setProgressCount] = useState(0);
+  const [cycleStartedAt, setCycleStartedAt] = useState<string | undefined>();
   const [toggling, setToggling] = useState(false);
+  const [celebration, setCelebration] = useState<number | null>(null);
 
   const weekStart = getWeekStartKey();
   const selectedDateKey = dateKeyForDayIndex(selectedDay);
@@ -55,20 +73,59 @@ export function ClientPlan() {
 
   useEffect(() => {
     if (!clientId) return;
-    let resolved = false;
-    const unsub = subscribeClients((clients) => {
-      if (clients[clientId]) {
-        setClientName(clients[clientId].name);
+
+    rememberClientPlan(clientId);
+    ensureActiveCycle(clientId)
+      .then((client) => {
+        if (client?.cycleStartedAt) setCycleStartedAt(client.cycleStartedAt);
+      })
+      .catch(() => {
+        // el snapshot del cliente cubre el estado si falla
+      });
+
+    const cached = getCachedClientName(clientId);
+    if (cached) {
+      setClientName(cached);
+      setNotFound(false);
+    }
+
+    let resolved = Boolean(cached);
+    let cancelled = false;
+
+    getClient(clientId)
+      .then((client) => {
+        if (cancelled) return;
+        if (client) {
+          setClientName(client.name);
+          cacheClientName(clientId, client.name);
+          setNotFound(false);
+          resolved = true;
+        }
+      })
+      .catch(() => {
+        // snapshot / timeout como fallback
+      });
+
+    const unsub = subscribeClient(clientId, (client) => {
+      if (client) {
+        setClientName(client.name);
+        cacheClientName(clientId, client.name);
+        setCycleStartedAt(client.cycleStartedAt);
         setNotFound(false);
         resolved = true;
-      } else if (Object.keys(clients).length > 0 || resolved) {
+      } else {
+        resolved = true;
+        setClientName('');
         setNotFound(true);
       }
     });
+
     const t = setTimeout(() => {
       if (!resolved) setNotFound(true);
     }, 4000);
+
     return () => {
+      cancelled = true;
       unsub();
       clearTimeout(t);
     };
@@ -95,6 +152,19 @@ export function ClientPlan() {
     if (!clientId) return;
     return subscribeProgressCount(clientId, setProgressCount);
   }, [clientId]);
+
+  useEffect(() => {
+    if (!clientId || progressCount === 0) return;
+    if (progressCount % MILESTONE_DAYS !== 0) return;
+    const key = `fit21_celebrated_${clientId}_${progressCount}`;
+    try {
+      if (localStorage.getItem(key)) return;
+      localStorage.setItem(key, '1');
+    } catch {
+      return;
+    }
+    setCelebration(progressCount);
+  }, [progressCount, clientId]);
 
   const handleToggleComplete = async () => {
     if (!clientId || toggling) return;
@@ -126,84 +196,126 @@ export function ClientPlan() {
 
   const hasNutrition = nutrition && nutrition.meals.length > 0;
   const exercises = routine?.exercises ?? [];
-  const todayComplete = isToday && dayComplete;
+  const cycleDay = cycleStartedAt
+    ? Math.min(daysSinceDate(cycleStartedAt) + 1, CYCLE_DAYS)
+    : 1;
 
   return (
     <div className="client-plan">
-      <header className="client-header">
-        <Logo size="sm" />
-        <div>
-          <p className="client-greeting">
-            Hola, {clientName || '...'}
-          </p>
-          <p className="client-date">{todayLabel}</p>
-          <p className="client-cycle">
-            Día <strong>{Math.min(progressCount + (todayComplete ? 0 : 1), 21)}</strong> de tu ciclo de 21
-          </p>
+      {celebration !== null && (
+        <WeekCelebration milestone={celebration} onDone={() => setCelebration(null)} />
+      )}
+      <header className="client-header-card card">
+        <div className="client-header">
+          <Logo size="sm" />
+          <div className="client-header__info">
+            <p className="client-greeting">
+              Hola,{' '}
+              {clientName ? (
+                <span className="client-greeting__name">{clientName}</span>
+              ) : (
+                <span className="client-greeting__skeleton" aria-label="Cargando nombre" />
+              )}
+            </p>
+            <p className="client-date">{todayLabel}</p>
+            <p className="client-cycle">
+              Día <strong>{cycleDay}</strong> de tu ciclo de {CYCLE_DAYS}
+            </p>
+          </div>
+          <NotificationBell clientId={clientId} />
         </div>
       </header>
 
-      <div className="day-tabs client-day-tabs" role="tablist" aria-label="Día de la semana">
-        {DAY_SHORT.map((name, i) => (
-          <button
-            key={name}
-            type="button"
-            role="tab"
-            aria-selected={selectedDay === i}
-            className={`day-tab ${selectedDay === i ? 'day-tab--active' : ''} ${i === todayIndex ? 'day-tab--today' : ''}`}
-            onClick={() => setSelectedDay(i)}
-          >
-            {name}
-          </button>
-        ))}
-      </div>
+      <InstallHint />
+
+      <nav className="client-day-nav" aria-label="Día de la semana">
+        <div className="day-tabs client-day-tabs" role="tablist">
+          {DAY_SHORT.map((name, i) => (
+            <button
+              key={name}
+              type="button"
+              role="tab"
+              aria-selected={selectedDay === i}
+              className={`day-tab ${selectedDay === i ? 'day-tab--active' : ''} ${i === todayIndex ? 'day-tab--today' : ''}`}
+              onClick={() => setSelectedDay(i)}
+            >
+              {name}
+            </button>
+          ))}
+        </div>
+      </nav>
 
       <section className="progress-section card">
+        <p className="section-label">Tu avance</p>
         <DayPips count={progressCount} />
-        <label className="complete-check">
+        <label className={`complete-check ${dayComplete ? 'complete-check--done' : ''}`}>
           <input
             type="checkbox"
             checked={dayComplete}
             onChange={handleToggleComplete}
             disabled={toggling}
           />
-          <span>
+          <span className="complete-check__text">
             {isToday
               ? '¡Hoy completé mi rutina!'
-              : `Completé la rutina del ${DAY_NAMES[selectedDay].toLowerCase()}`}
+              : `Rutina del ${DAY_NAMES[selectedDay].toLowerCase()} — completada`}
           </span>
         </label>
       </section>
 
       <section className="routine-section card">
-        <div className="routine-section__head">
-          <h2>{routine?.dayName || DAY_NAMES[selectedDay]}</h2>
-          {routine?.classification && (
-            <span className="routine-meta">{routine.classification}</span>
-          )}
+        <div className="section-head">
+          <p className="section-label">Tu rutina</p>
+          <div className="routine-section__head">
+            <h2>{routine?.dayName || DAY_NAMES[selectedDay]}</h2>
+            {routine?.classification && (
+              <span className="routine-meta">{routine.classification}</span>
+            )}
+          </div>
         </div>
         {routine?.comment && <p className="routine-comment">{routine.comment}</p>}
 
         {exercises.length === 0 ? (
-          <p className="empty-state">
-            No hay ejercicios asignados para {DAY_NAMES[selectedDay].toLowerCase()}.
-          </p>
+          <div className="empty-state">
+            <span className="empty-state__icon" aria-hidden>💪</span>
+            <p className="empty-state__title">Sin ejercicios asignados</p>
+            <p className="empty-state__text">
+              Tu coach aún no ha asignado ejercicios para este día.
+            </p>
+          </div>
         ) : (
           <div className="client-exercises">
             {exercises.map((ex: Exercise, i: number) => (
-              <article key={ex.id} className="client-exercise">
+              <article key={ex.id} className="client-exercise card card--nested">
                 <div className="client-exercise__head">
                   <span className="client-exercise__num">{i + 1}</span>
                   <div>
                     <h3>{ex.name || 'Ejercicio'}</h3>
-                    {ex.tag && <span className="tag-badge">{TAG_LABELS[ex.tag] ?? ex.tag}</span>}
+                    {ex.tag && (
+                      <span className="tag-badge">{TAG_LABELS[ex.tag] ?? ex.tag}</span>
+                    )}
                   </div>
                 </div>
                 <MediaPlayer url={ex.mediaUrl} alt={ex.name} />
                 <div className="client-exercise__stats">
-                  {ex.sets && <span><strong>Series:</strong> {ex.sets}</span>}
-                  {ex.reps && <span><strong>Reps:</strong> {ex.reps}</span>}
-                  {formatRest(ex) && <span><strong>Descanso:</strong> {formatRest(ex)}</span>}
+                  {ex.sets && (
+                    <span className="stat-chip">
+                      <span className="stat-chip__label">Series</span>
+                      <span className="stat-chip__value">{ex.sets}</span>
+                    </span>
+                  )}
+                  {ex.reps && (
+                    <span className="stat-chip">
+                      <span className="stat-chip__label">Reps</span>
+                      <span className="stat-chip__value">{ex.reps}</span>
+                    </span>
+                  )}
+                  {formatRest(ex) && (
+                    <span className="stat-chip">
+                      <span className="stat-chip__label">Descanso entre series</span>
+                      <span className="stat-chip__value">{formatRest(ex)}</span>
+                    </span>
+                  )}
                 </div>
                 {ex.notes && <p className="client-exercise__notes">{ex.notes}</p>}
               </article>
@@ -213,11 +325,18 @@ export function ClientPlan() {
       </section>
 
       <section className="nutrition-section card">
-        <h2>Plan de alimentación · {DAY_NAMES[selectedDay]}</h2>
+        <div className="section-head">
+          <p className="section-label">Alimentación</p>
+          <h2>{DAY_NAMES[selectedDay]}</h2>
+        </div>
         {!hasNutrition ? (
-          <p className="empty-state nutrition-empty">
-            Por ahora no tienes plan de nutrición asignado para este día
-          </p>
+          <div className="empty-state">
+            <span className="empty-state__icon" aria-hidden>🥗</span>
+            <p className="empty-state__title">Sin plan de nutrición</p>
+            <p className="empty-state__text">
+              Tu plan de alimentación aparecerá aquí.
+            </p>
+          </div>
         ) : (
           <>
             {nutrition!.planName && <p className="plan-title">{nutrition!.planName}</p>}
@@ -228,15 +347,18 @@ export function ClientPlan() {
             )}
             {nutrition!.calories && (
               <p className="plan-calories">
-                <strong>{nutrition!.calories}</strong> calorías
+                <strong>{nutrition!.calories}</strong>
+                <span> calorías</span>
               </p>
             )}
             {nutrition!.meals.map((meal) => (
-              <div key={meal.id} className="client-meal">
+              <div key={meal.id} className="client-meal card card--nested">
                 <h3>{meal.mealName}</h3>
                 {meal.foods.map((food) => (
                   <div key={food.id} className="client-food">
-                    {food.photoUrl && <MediaPlayer url={food.photoUrl} alt={food.name} compact />}
+                    {food.photoUrl && (
+                      <MediaPlayer url={food.photoUrl} alt={food.name} compact />
+                    )}
                     <div>
                       <strong>{food.name}</strong>
                       {food.equivalents && (
@@ -252,15 +374,13 @@ export function ClientPlan() {
       </section>
 
       <footer className="client-footer">
+        <FeedbackForm clientId={clientId} clientName={clientName} />
+        <p>Fit 21 · María Rosa Pérez · Todos los derechos reservados · 2026</p>
         <p>
-          Fit 21, Claudia Chávez, todos los derechos reservados, Julio 2026.
-        </p>
-        <p>
-          Para dudas, nos comunicaremos vía WhatsApp al{' '}
+          Dudas vía WhatsApp{' '}
           <a href={WHATSAPP_URL} target="_blank" rel="noreferrer">
             811 075 1529
           </a>
-          .
         </p>
       </footer>
     </div>

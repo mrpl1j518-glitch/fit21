@@ -4,16 +4,15 @@
   align-items: center;
   gap: 0.25rem;
   flex-shrink: 0;
-  max-width: 100%;
 }
 
 .fit21-logo__img {
   display: block;
   object-fit: contain;
   border-radius: 50%;
-  max-width: 100%;
   width: 56px;
   height: 56px;
+  flex-shrink: 0;
 }
 
 .fit21-logo--sm .fit21-logo__img {

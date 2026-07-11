@@ -6,6 +6,7 @@ import {
   type User,
 } from 'firebase/auth';
 import { auth } from '../lib/firebase';
+import { Logo } from './Logo';
 import './CoachAuthGate.css';
 
 interface CoachAuthGateProps {
@@ -62,7 +63,8 @@ export function CoachAuthGate({ onSuccess }: CoachAuthGateProps) {
 
   return (
     <div className="pin-gate">
-      <form className="pin-gate__card" onSubmit={handleSubmit}>
+      <form className="pin-gate__card card" onSubmit={handleSubmit}>
+        <Logo size="md" />
         <h2>Acceso coach</h2>
         <p>Inicia sesión para administrar clientas y la biblioteca</p>
         <input

@@ -8,7 +8,11 @@ service cloud.firestore {
     // Perfiles de clientas: lectura pública (link personal), escritura solo coach
     match /clients/{clientId} {
       allow read: if true;
-      allow create, update, delete: if isCoach();
+      allow create, delete: if isCoach();
+      allow update: if isCoach() || (
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['cycleStartedAt'])
+        && request.resource.data.cycleStartedAt is string
+      );
     }
 
     // Rutinas y nutrición: la clienta lee su plan; solo el coach edita
@@ -40,7 +44,7 @@ service cloud.firestore {
     match /weekProgress/{docId} {
       allow read: if true;
       allow create, update: if true;
-      allow delete: if isCoach();
+      allow delete: if true;
     }
 
     match /progressCount/{clientId} {
@@ -48,8 +52,25 @@ service cloud.firestore {
       allow create, update: if request.resource.data.keys().hasOnly(['count'])
         && request.resource.data.count is int
         && request.resource.data.count >= 0
-        && request.resource.data.count <= 21;
+        && request.resource.data.count <= 28;
       allow delete: if isCoach();
+    }
+
+    match /clientNotifications/{clientId} {
+      allow read: if true;
+      allow create, update: if true;
+      allow delete: if isCoach();
+    }
+
+    match /feedback/{feedbackId} {
+      allow read: if isCoach();
+      allow create: if request.resource.data.keys().hasAll(['clientId', 'clientName', 'rating', 'message', 'createdAt'])
+        && request.resource.data.rating is int
+        && request.resource.data.rating >= 1
+        && request.resource.data.rating <= 5
+        && request.resource.data.message is string
+        && request.resource.data.message.size() <= 500;
+      allow update, delete: if isCoach();
     }
   }
 }

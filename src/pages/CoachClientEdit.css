@@ -2,59 +2,78 @@
   width: 100%;
   max-width: 480px;
   margin: 0 auto;
-  padding: 1rem 1rem 5.5rem;
+  padding: var(--space-lg) var(--space-lg) 5.5rem;
   overflow-x: hidden;
   box-sizing: border-box;
+  background-color: var(--color-bg);
 }
 
 .coach-edit__header {
-  margin-bottom: 1rem;
+  margin-bottom: var(--space-md);
+  padding: var(--space-lg);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
 }
 
 .coach-edit__header h1 {
-  margin: 0.4rem 0 0;
-  color: var(--fit21-purple);
-  font-size: 1.4rem;
+  margin: var(--space-sm) 0 0;
+  color: var(--color-primary);
+  font-size: var(--font-title);
   letter-spacing: -0.02em;
 }
 
 .back-link {
-  color: var(--fit21-teal);
+  color: var(--color-accent);
   text-decoration: none;
-  font-weight: 700;
-  font-size: 0.9rem;
+  font-weight: var(--weight-semibold);
+  font-size: var(--font-caption);
+  transition: opacity 0.15s ease;
+}
+
+.back-link:hover {
+  opacity: 0.75;
 }
 
 .tabs {
   display: flex;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-md);
+  padding: var(--space-xs);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
 }
 
 .tab {
   flex: 1;
-  padding: 0.7rem;
-  border: none;
-  border-radius: 12px;
-  background: white;
-  color: var(--fit21-purple);
-  font-weight: 800;
-  font-size: 0.85rem;
+  padding: 0.65rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-text-muted);
+  font-weight: var(--weight-semibold);
+  font-size: var(--font-caption);
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(59, 30, 120, 0.08);
+  transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .tab--active {
-  background: var(--fit21-purple);
+  background: var(--color-primary);
   color: white;
+  box-shadow: var(--shadow-sm);
 }
 
 .edit-section label {
   display: block;
-  font-size: 0.78rem;
-  font-weight: 700;
-  color: var(--fit21-purple);
-  margin-bottom: 0.85rem;
+  font-size: var(--font-label);
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-subtle);
+  margin-bottom: var(--space-md);
 }
 
 .edit-section label input,
@@ -67,35 +86,40 @@
 
 .day-tabs {
   display: flex;
-  gap: 0.35rem;
-  margin-bottom: 0.85rem;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-md);
   overflow-x: auto;
-  padding-bottom: 0.15rem;
+  padding: var(--space-xs);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  -webkit-overflow-scrolling: touch;
 }
 
 .day-tab {
   flex: 1;
-  min-width: 2.6rem;
-  padding: 0.55rem 0.35rem;
-  border: none;
-  border-radius: 10px;
-  background: rgba(20, 166, 166, 0.12);
-  color: var(--fit21-teal);
-  font-size: 0.75rem;
-  font-weight: 800;
+  min-width: 2.5rem;
+  padding: 0.5rem 0.25rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: var(--font-caption);
+  font-weight: var(--weight-semibold);
   cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
 }
 
 .day-tab--active {
-  background: var(--fit21-teal);
-  color: white;
+  background: var(--color-accent) !important;
+  color: white !important;
 }
 
 .day-card__label {
-  margin: 0 0 0.85rem;
-  font-weight: 800;
-  color: var(--fit21-purple);
-  font-size: 1.05rem;
+  margin: 0 0 var(--space-md);
+  font-weight: var(--weight-semibold);
+  color: var(--color-primary);
+  font-size: var(--font-body);
 }
 
 .field-grid {
@@ -154,6 +178,47 @@
   color: var(--fit21-pink);
   min-width: 1.25rem;
   text-align: center;
+}
+
+.exercise-card__reorder {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.reorder-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+  color: var(--color-primary);
+  font-size: 0.75rem;
+  font-weight: var(--weight-bold);
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.reorder-btn:hover:not(:disabled) {
+  background: rgba(59, 30, 120, 0.06);
+  border-color: var(--color-primary);
+}
+
+.reorder-btn:active:not(:disabled) {
+  background: rgba(20, 166, 166, 0.12);
+  border-color: var(--color-accent);
+  color: #0d7a7a;
+}
+
+.reorder-btn:disabled {
+  opacity: 0.25;
+  cursor: not-allowed;
 }
 
 .exercise-title {
@@ -238,4 +303,21 @@
 .sticky-error {
   max-width: 480px;
   margin: 0 auto 0.5rem;
+}
+
+.notify-client-check {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  max-width: 480px;
+  margin: 0 auto 0.5rem;
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.notify-client-check input {
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--fit21-teal);
 }

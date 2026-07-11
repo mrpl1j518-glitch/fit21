@@ -3,43 +3,65 @@
   align-items: center;
   justify-content: center;
   min-height: 60vh;
-  padding: 1rem;
+  padding: var(--space-lg);
 }
 
 .pin-gate__card {
-  background: white;
-  border-radius: 20px;
-  padding: 2rem 1.5rem;
+  position: relative;
+  overflow: hidden;
   width: 100%;
   max-width: 360px;
-  box-shadow: 0 8px 32px rgba(59, 30, 120, 0.12);
+  padding: var(--space-2xl) var(--space-xl) !important;
   text-align: center;
+  border: none !important;
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(59, 30, 120, 0.06) 0%, transparent 60%),
+    #ffffff !important;
+  box-shadow: var(--shadow-lg), 0 0 0 1px rgba(59, 30, 120, 0.06) !important;
+}
+
+.pin-gate__card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--fit21-purple), var(--fit21-pink), var(--fit21-teal));
+}
+
+.pin-gate__card .fit21-logo {
+  margin-bottom: var(--space-md);
 }
 
 .pin-gate__card h2 {
-  margin: 0 0 0.5rem;
-  color: var(--fit21-purple);
+  margin: 0 0 var(--space-sm);
+  color: var(--color-primary);
+  font-size: var(--font-title);
 }
 
 .pin-gate__card p {
-  margin: 0 0 1.25rem;
-  color: var(--text-muted);
-  font-size: 0.9rem;
+  margin: 0 0 var(--space-xl);
+  color: var(--color-text-muted);
+  font-size: var(--font-body);
+  line-height: 1.45;
 }
 
 .pin-gate__card input {
   width: 100%;
   text-align: left;
-  font-size: 1rem;
+  font-size: var(--font-body);
   letter-spacing: normal;
   padding: 0.75rem;
-  border: 2px solid #e8e4ef;
-  border-radius: 12px;
-  margin-bottom: 0.75rem;
+  margin-bottom: var(--space-md);
+}
+
+.pin-gate__card .btn {
+  width: 100%;
 }
 
 .pin-gate__error {
   color: #c62828;
-  font-size: 0.85rem;
-  margin: -0.5rem 0 1rem !important;
+  font-size: var(--font-caption);
+  margin: calc(var(--space-sm) * -1) 0 var(--space-md) !important;
 }

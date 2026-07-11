@@ -1,0 +1,78 @@
+.week-celebration {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 1.5rem 1rem calc(1.5rem + env(safe-area-inset-bottom));
+  pointer-events: none;
+  animation: celebration-fade-in 0.35s ease;
+}
+
+.week-celebration__card {
+  width: 100%;
+  max-width: 400px;
+  padding: 1.15rem 1.25rem;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(
+    135deg,
+    rgba(59, 30, 120, 0.95) 0%,
+    rgba(233, 30, 127, 0.92) 100%
+  );
+  color: white;
+  text-align: center;
+  box-shadow: 0 8px 32px rgba(59, 30, 120, 0.35);
+  animation: celebration-slide-up 0.4s ease;
+}
+
+.week-celebration__emoji {
+  display: block;
+  font-size: 2rem;
+  margin-bottom: 0.35rem;
+  animation: celebration-pop 0.5s ease 0.15s both;
+}
+
+.week-celebration__title {
+  margin: 0 0 0.35rem;
+  font-size: 1.1rem;
+  font-weight: var(--weight-bold);
+}
+
+.week-celebration__text {
+  margin: 0;
+  font-size: var(--font-caption);
+  opacity: 0.92;
+  line-height: 1.4;
+}
+
+.week-celebration__text strong {
+  font-weight: var(--weight-bold);
+}
+
+@keyframes celebration-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes celebration-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes celebration-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}

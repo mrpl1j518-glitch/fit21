@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="es">
+<html lang="es" style="color-scheme: light only; background-color: #FAFAFA;">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/png" href="/fit21-logo.png" />
@@ -8,13 +8,28 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#3B1E78" />
+    <meta name="color-scheme" content="light only" />
+    <meta name="supported-color-schemes" content="light" />
+    <meta name="theme-color" content="#3B1E78" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#3B1E78" media="(prefers-color-scheme: dark)" />
     <meta name="description" content="FIT21 — Constancia que transforma. Rutinas y nutrición personalizada." />
+    <!-- iOS / PWA -->
+    <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="FIT21" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="format-detection" content="telephone=no" />
+    <!-- Bloquea modo oscuro forzado antes de cargar CSS (Samsung Internet, etc.) -->
+    <style>
+      html, body, #root {
+        color-scheme: light only !important;
+        background-color: #FAFAFA !important;
+        color: #2d1b4e !important;
+      }
+    </style>
     <title>FIT21 — Constancia que transforma</title>
   </head>
-  <body>
+  <body style="color-scheme: light only; background-color: #FAFAFA; margin: 0;">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

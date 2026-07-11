@@ -32,3 +32,5 @@ firestore-debug.log
 # PWA
 dev-dist
 imagesdefitmentor/
+.vercel
+.env*

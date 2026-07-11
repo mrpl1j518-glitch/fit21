@@ -50,3 +50,48 @@ export function dateKeyForDayIndex(dayIndex: number, from = new Date()): string 
   return formatDateKey(dateForDayIndex(dayIndex, from));
 }
 
+/** Fecha corta: 10/7/2026 */
+export function formatDayMonthYear(value: Date | string): string {
+  const date = typeof value === 'string' ? new Date(value) : value;
+  return date.toLocaleDateString('es-MX', {
+    day: 'numeric',
+    month: 'numeric',
+    year: 'numeric',
+  });
+}
+
+/** Reciente: "hace 5 minutos". Antiguo: "el 10/7/2026" */
+export function formatModifiedRelative(value: Date | string, now = new Date()): string {
+  const date = typeof value === 'string' ? new Date(value) : value;
+  const diffMs = Math.max(0, now.getTime() - date.getTime());
+  const diffMin = Math.floor(diffMs / 60_000);
+
+  if (diffMin < 1) return 'hace un momento';
+  if (diffMin < 60) {
+    return diffMin === 1 ? 'hace 1 minuto' : `hace ${diffMin} minutos`;
+  }
+
+  const diffHours = Math.floor(diffMin / 60);
+  if (diffHours < 24) {
+    return diffHours === 1 ? 'hace 1 hora' : `hace ${diffHours} horas`;
+  }
+
+  return `el ${formatDayMonthYear(date)}`;
+}
+
+/** Días calendario transcurridos desde una fecha ISO (0 = mismo día). */
+export function daysSinceDate(value: Date | string, from = new Date()): number {
+  const start = typeof value === 'string' ? new Date(value) : new Date(value);
+  start.setHours(0, 0, 0, 0);
+  const end = new Date(from);
+  end.setHours(0, 0, 0, 0);
+  return Math.floor((end.getTime() - start.getTime()) / 86_400_000);
+}
+
+/** Inicio del día local en ISO (para marcar inicio de ciclo). */
+export function startOfTodayIso(from = new Date()): string {
+  const date = new Date(from);
+  date.setHours(0, 0, 0, 0);
+  return date.toISOString();
+}
+
