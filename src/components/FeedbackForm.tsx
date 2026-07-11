@@ -54,7 +54,6 @@ export function FeedbackForm({ clientId, clientName }: FeedbackFormProps) {
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
       >
-        <span aria-hidden>💬</span>
         {open ? 'Cerrar' : 'Déjanos tu opinión'}
       </button>
 

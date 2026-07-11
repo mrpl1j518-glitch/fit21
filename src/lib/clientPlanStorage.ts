@@ -1,3 +1,5 @@
+import { buildClientPlanPath } from './clientSlug';
+
 const CLIENT_ID_KEY = 'fit21_last_client_id';
 const CLIENT_NAME_PREFIX = 'fit21_client_name_';
 
@@ -66,23 +68,29 @@ export function isStandaloneDisplay(): boolean {
 
 /**
  * Guarda la usuaria actual y actualiza el manifest para que
- * "Instalar app" abra /plan/:id en lugar de la landing de coach.
+ * "Instalar app" abra su plan en lugar de la landing de coach.
  */
-export function rememberClientPlan(clientId: string) {
+export function rememberClientPlan(clientId: string, clientName?: string) {
   try {
     localStorage.setItem(CLIENT_ID_KEY, clientId);
   } catch {
     // ignore
   }
-  applyClientManifest(clientId);
+
+  const cachedName = clientName ?? getCachedClientName(clientId) ?? undefined;
+  const startPath = cachedName
+    ? buildClientPlanPath(clientId, cachedName)
+    : `/plan/${clientId}`;
+
+  applyClientManifest(startPath);
 }
 
-function applyClientManifest(clientId: string) {
+function applyClientManifest(startPath: string) {
   if (typeof document === 'undefined') return;
 
   const manifest = {
     ...MANIFEST_BASE,
-    start_url: `/plan/${clientId}`,
+    start_url: startPath,
   };
 
   const blob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });

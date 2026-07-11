@@ -67,8 +67,31 @@ export interface NutritionPlan {
 export interface Client {
   name: string;
   createdAt?: string;
+  /** Parte legible del link personal (ej. "wendy"). */
+  slug?: string;
   /** Inicio del ciclo actual de 28 días (desde la primera rutina asignada). */
   cycleStartedAt?: string;
+  /** Meta resumida visible en el dashboard del coach (editable). */
+  coachMeta?: ClientCoachMeta;
+}
+
+export interface ClientCoachMeta {
+  routineGoal?: string;
+  nutritionGoal?: string;
+  calories?: string;
+  updatedAt?: string;
+}
+
+export interface ClientCoachOverview {
+  progressCount: number;
+  cycleStartedAt: string | null;
+  cycleDay: number;
+  activeRoutineDays: number;
+  routineGoal: string;
+  nutritionGoal: string;
+  calories: string;
+  /** 28 días del ciclo actual: true si la clienta marcó ese día. */
+  dailyCompletion: boolean[];
 }
 
 export interface WeekProgress {

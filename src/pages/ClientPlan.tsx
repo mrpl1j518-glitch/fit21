@@ -39,6 +39,7 @@ import {
   getCachedClientName,
   cacheClientName,
 } from '../lib/clientPlanStorage';
+import { parseClientPlanParam } from '../lib/clientSlug';
 import './ClientPlan.css';
 
 const TAG_LABELS: Record<string, string> = {
@@ -51,7 +52,8 @@ const TAG_LABELS: Record<string, string> = {
 const WHATSAPP_URL = 'https://wa.me/528110751529';
 
 export function ClientPlan() {
-  const { clientId } = useParams<{ clientId: string }>();
+  const { clientId: clientIdParam } = useParams<{ clientId: string }>();
+  const clientId = clientIdParam ? parseClientPlanParam(clientIdParam) : undefined;
   const todayIndex = getDayIndex();
   const [selectedDay, setSelectedDay] = useState(todayIndex);
   const [clientName, setClientName] = useState(() =>
@@ -110,6 +112,7 @@ export function ClientPlan() {
       if (client) {
         setClientName(client.name);
         cacheClientName(clientId, client.name);
+        rememberClientPlan(clientId, client.name);
         setCycleStartedAt(client.cycleStartedAt);
         setNotFound(false);
         resolved = true;
@@ -246,7 +249,7 @@ export function ClientPlan() {
       </nav>
 
       <section className="progress-section card">
-        <p className="section-label">Tu avance</p>
+        <p className="section-title">Tu avance</p>
         <DayPips count={progressCount} />
         <label className={`complete-check ${dayComplete ? 'complete-check--done' : ''}`}>
           <input
@@ -265,7 +268,7 @@ export function ClientPlan() {
 
       <section className="routine-section card">
         <div className="section-head">
-          <p className="section-label">Tu rutina</p>
+          <p className="section-title">Tu rutina</p>
           <div className="routine-section__head">
             <h2>{routine?.dayName || DAY_NAMES[selectedDay]}</h2>
             {routine?.classification && (
@@ -277,7 +280,7 @@ export function ClientPlan() {
 
         {exercises.length === 0 ? (
           <div className="empty-state">
-            <span className="empty-state__icon" aria-hidden>💪</span>
+            <span className="empty-mark" aria-hidden />
             <p className="empty-state__title">Sin ejercicios asignados</p>
             <p className="empty-state__text">
               Tu coach aún no ha asignado ejercicios para este día.
@@ -296,7 +299,7 @@ export function ClientPlan() {
                     )}
                   </div>
                 </div>
-                <MediaPlayer url={ex.mediaUrl} alt={ex.name} />
+                {ex.mediaUrl && <MediaPlayer url={ex.mediaUrl} alt={ex.name} />}
                 <div className="client-exercise__stats">
                   {ex.sets && (
                     <span className="stat-chip">
@@ -326,12 +329,12 @@ export function ClientPlan() {
 
       <section className="nutrition-section card">
         <div className="section-head">
-          <p className="section-label">Alimentación</p>
+          <p className="section-title">Alimentación</p>
           <h2>{DAY_NAMES[selectedDay]}</h2>
         </div>
         {!hasNutrition ? (
           <div className="empty-state">
-            <span className="empty-state__icon" aria-hidden>🥗</span>
+            <span className="empty-mark empty-mark--teal" aria-hidden />
             <p className="empty-state__title">Sin plan de nutrición</p>
             <p className="empty-state__text">
               Tu plan de alimentación aparecerá aquí.

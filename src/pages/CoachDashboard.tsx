@@ -10,10 +10,13 @@ import {
   deleteClient,
   generateClientId,
   subscribeClientPlanMeta,
+  subscribeClientCoachOverview,
   subscribeFeedback,
   type ClientPlanMeta,
 } from '../lib/firestore';
-import { initials, type Client, type ClientFeedback } from '../types';
+import { ClientOverviewPanel } from '../components/ClientOverviewPanel';
+import { initials, type Client, type ClientFeedback, type ClientCoachOverview } from '../types';
+import { getClientPlanUrl } from '../lib/clientSlug';
 import './CoachDashboard.css';
 
 interface ClientRow extends Client {
@@ -27,6 +30,7 @@ export function CoachDashboard() {
   const [newName, setNewName] = useState('');
   const [showAdd, setShowAdd] = useState(false);
   const [planMetaByClient, setPlanMetaByClient] = useState<Record<string, ClientPlanMeta>>({});
+  const [overviewByClient, setOverviewByClient] = useState<Record<string, ClientCoachOverview>>({});
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
@@ -39,10 +43,10 @@ export function CoachDashboard() {
     return { count: feedback.length, average: sum / feedback.length };
   }, [feedback]);
 
-  const averageEmoji =
-    feedbackStats.count > 0
-      ? ['😞', '😐', '🙂', '😊', '🤩'][Math.min(4, Math.max(0, Math.round(feedbackStats.average) - 1))]
-      : '—';
+  const averageRatingLabel =
+    feedbackStats.count > 0 ? `${feedbackStats.average.toFixed(1)} / 5` : '—';
+
+  const ratingLabel = (rating: number) => `${rating}/5`;
 
   useEffect(() => {
     return subscribeClients(setClients);
@@ -58,6 +62,15 @@ export function CoachDashboard() {
     const unsubs = clientIds.map((id) =>
       subscribeClientPlanMeta(id, (meta) => {
         setPlanMetaByClient((prev) => ({ ...prev, [id]: meta }));
+      })
+    );
+    return () => unsubs.forEach((u) => u());
+  }, [clientIds.join(',')]);
+
+  useEffect(() => {
+    const unsubs = clientIds.map((id) =>
+      subscribeClientCoachOverview(id, (overview) => {
+        setOverviewByClient((prev) => ({ ...prev, [id]: overview }));
       })
     );
     return () => unsubs.forEach((u) => u());
@@ -91,8 +104,8 @@ export function CoachDashboard() {
     }
   };
 
-  const handleCopyLink = async (clientId: string) => {
-    const url = `${window.location.origin}/plan/${clientId}`;
+  const handleCopyLink = async (clientId: string, name: string) => {
+    const url = getClientPlanUrl(window.location.origin, clientId, name);
     await navigator.clipboard.writeText(url);
     setCopiedId(clientId);
     setTimeout(() => setCopiedId(null), 2000);
@@ -116,7 +129,7 @@ export function CoachDashboard() {
         <div className="coach-header">
           <Logo size="sm" />
           <div className="coach-header__text">
-            <p className="section-label">Panel coach</p>
+            <p className="section-label section-label--soft">Panel coach</p>
             <h1>Clientas</h1>
             <p className="coach-header__sub">Rutinas y planes · FIT21</p>
           </div>
@@ -132,7 +145,7 @@ export function CoachDashboard() {
 
       <div className="coach-actions">
         <button
-          className="btn btn--pink btn--block coach-register"
+          className="btn btn--cta btn--block coach-register"
           onClick={() => setShowAdd((v) => !v)}
         >
           + Registrar clienta
@@ -150,8 +163,8 @@ export function CoachDashboard() {
           onClick={() => setShowFeedback((v) => !v)}
           aria-expanded={showFeedback}
         >
-          <span>💬 Opiniones de clientas</span>
-          <span aria-hidden>{showFeedback ? '▾' : '▸'}</span>
+          <span>Opiniones de clientas</span>
+          <span className="coach-feedback__chevron" aria-hidden />
         </button>
 
         <div className="coach-feedback__summary">
@@ -160,8 +173,8 @@ export function CoachDashboard() {
             <span className="coach-feedback__stat-label">mensajes</span>
           </div>
           <div className="coach-feedback__stat">
-            <span className="coach-feedback__stat-value coach-feedback__stat-value--emoji" aria-hidden>
-              {averageEmoji}
+            <span className="coach-feedback__stat-value coach-feedback__stat-value--rating">
+              {averageRatingLabel}
             </span>
             <span className="coach-feedback__stat-label">
               {feedbackStats.count > 0
@@ -180,8 +193,8 @@ export function CoachDashboard() {
                 <li key={item.id} className="coach-feedback__item">
                   <div className="coach-feedback__meta">
                     <strong>{item.clientName}</strong>
-                    <span aria-label={`Valoración ${item.rating} de 5`}>
-                      {['😞', '😐', '🙂', '😊', '🤩'][item.rating - 1]}
+                    <span className="coach-feedback__rating" aria-label={`Valoración ${item.rating} de 5`}>
+                      {ratingLabel(item.rating)}
                     </span>
                     <time dateTime={item.createdAt}>
                       {new Date(item.createdAt).toLocaleDateString('es-MX', {
@@ -204,7 +217,7 @@ export function CoachDashboard() {
 
       {showAdd && (
         <section className="coach-add card">
-          <p className="section-label">Nueva clienta</p>
+          <p className="section-title">Nueva clienta</p>
           <div className="coach-add__row">
             <input
               type="text"
@@ -236,10 +249,10 @@ export function CoachDashboard() {
 
       {rows.length === 0 ? (
         <section className="empty-card card">
-          <span className="empty-card__icon" aria-hidden>✨</span>
+          <span className="empty-mark" aria-hidden />
           <h2>Registra a tu primera clienta</h2>
           <p>Asigna su rutina, plan de alimentación y envíale su link personal por WhatsApp.</p>
-          <button className="btn btn--pink btn--block" onClick={() => setShowAdd(true)}>
+          <button className="btn btn--cta btn--block" onClick={() => setShowAdd(true)}>
             Registrar primera clienta
           </button>
         </section>
@@ -300,6 +313,10 @@ export function CoachDashboard() {
                           hasContent
                         />
                       )}
+                      <ClientOverviewPanel
+                        clientId={client.id}
+                        overview={overviewByClient[client.id]}
+                      />
                     </>
                   )}
                 </div>
@@ -311,8 +328,8 @@ export function CoachDashboard() {
                       Editar
                     </Link>
                     <button
-                      className={`btn btn--small btn--teal ${copiedId === client.id ? 'btn--copied' : ''}`}
-                      onClick={() => handleCopyLink(client.id)}
+                      className={`btn btn--small btn--cta ${copiedId === client.id ? 'btn--copied' : ''}`}
+                      onClick={() => handleCopyLink(client.id, client.name)}
                     >
                       {copiedId === client.id ? '¡Copiado!' : 'Copiar link'}
                     </button>

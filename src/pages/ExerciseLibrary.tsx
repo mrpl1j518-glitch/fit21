@@ -131,7 +131,7 @@ export function ExerciseLibrary() {
         {error && <p className="form-error">{error}</p>}
         {ok && <p className="form-ok">{ok}</p>}
         <div className="library-form__actions">
-          <button type="button" className="btn btn--pink" onClick={handleSave} disabled={saving}>
+          <button type="button" className="btn btn--primary" onClick={handleSave} disabled={saving}>
             {saving ? 'Guardando...' : editingId ? 'Actualizar' : 'Guardar en biblioteca'}
           </button>
           {editingId && (

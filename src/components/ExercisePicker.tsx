@@ -14,9 +14,10 @@ interface ExercisePickerProps {
   open: boolean;
   onClose: () => void;
   onPick: (items: PickedExercise[]) => void;
+  onManual?: () => void;
 }
 
-export function ExercisePicker({ open, onClose, onPick }: ExercisePickerProps) {
+export function ExercisePicker({ open, onClose, onPick, onManual }: ExercisePickerProps) {
   const [library, setLibrary] = useState<Record<string, LibraryExercise>>({});
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -120,7 +121,17 @@ export function ExercisePicker({ open, onClose, onPick }: ExercisePickerProps) {
         <footer className="picker-sheet__foot">
           <button
             type="button"
-            className="btn btn--pink btn--block"
+            className="btn btn--ghost btn--block picker-manual-link"
+            onClick={() => {
+              onClose();
+              onManual?.();
+            }}
+          >
+            Escribir ejercicio manual
+          </button>
+          <button
+            type="button"
+            className="btn btn--primary btn--block"
             disabled={selected.size === 0}
             onClick={handleConfirm}
           >

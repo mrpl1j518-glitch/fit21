@@ -9,8 +9,10 @@ import { Logo } from './components/Logo';
 import { isFirebaseConfigured } from './lib/firebase';
 import {
   getRememberedClientId,
+  getCachedClientName,
   isStandaloneDisplay,
 } from './lib/clientPlanStorage';
+import { buildClientPlanPath } from './lib/clientSlug';
 import './App.css';
 
 function CoachLayout() {
@@ -42,7 +44,8 @@ function Home() {
   // PWA instalada: abrir el último plan de usuaria, no la landing de coach
   const remembered = getRememberedClientId();
   if (isStandaloneDisplay() && remembered) {
-    return <Navigate to={`/plan/${remembered}`} replace />;
+    const name = getCachedClientName(remembered) ?? 'clienta';
+    return <Navigate to={buildClientPlanPath(remembered, name)} replace />;
   }
 
   const standaloneWithoutPlan = isStandaloneDisplay() && !remembered;

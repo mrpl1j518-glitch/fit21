@@ -14,9 +14,7 @@ export function DayPips({ count, total = CYCLE_DAYS }: DayPipsProps) {
       {Array.from({ length: total }, (_, i) => (
         <span
           key={i}
-          className={`day-pip ${i < filled ? 'day-pip--filled' : ''} ${
-            i < filled && i % 2 === 0 ? 'day-pip--teal' : ''
-          } ${i < filled && i % 2 === 1 ? 'day-pip--pink' : ''}`}
+          className={`day-pip ${i < filled ? 'day-pip--filled day-pip--teal' : ''}`}
         />
       ))}
     </div>

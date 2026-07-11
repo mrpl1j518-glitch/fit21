@@ -128,7 +128,12 @@ export function NotificationBell({ clientId }: NotificationBellProps) {
         aria-label={unread > 0 ? `${unread} notificaciones nuevas` : 'Notificaciones'}
         aria-expanded={open}
       >
-        🔔
+        <svg className="notification-bell__icon" viewBox="0 0 24 24" aria-hidden>
+          <path
+            d="M12 22a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22Zm7-5V11a7 7 0 1 0-14 0v6l-2 2v1h18v-1l-2-2Z"
+            fill="currentColor"
+          />
+        </svg>
         {unread > 0 && <span className="notification-bell__badge">{unread}</span>}
       </button>
       {panel}

@@ -36,11 +36,9 @@
 
 .library-form label {
   display: block;
-  font-size: var(--font-label);
+  font-size: var(--font-caption);
   font-weight: var(--weight-semibold);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--color-text-subtle);
+  color: var(--color-text-muted);
   margin-bottom: var(--space-md);
 }
 

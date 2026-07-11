@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { nanoid } from 'nanoid';
 import { MediaPlayer } from '../components/MediaPlayer';
 import { ExercisePicker, type PickedExercise } from '../components/ExercisePicker';
@@ -13,6 +13,7 @@ import {
   clearRoutineDay,
   clearNutritionDay,
   pushClientNotification,
+  syncClientCoachMetaFromPlans,
 } from '../lib/firestore';
 import { formatFirebaseError } from '../lib/mediaUrl';
 import {
@@ -64,6 +65,7 @@ function hasNutritionContent(plan: NutritionPlan): boolean {
 
 export function CoachClientEdit() {
   const { clientId } = useParams<{ clientId: string }>();
+  const navigate = useNavigate();
   const [clientName, setClientName] = useState('');
   const [tab, setTab] = useState<Tab>('rutina');
   const [dayIndex, setDayIndex] = useState(0);
@@ -111,6 +113,15 @@ export function CoachClientEdit() {
     setTimeout(() => setSaved(false), 2000);
   };
 
+  const handleCancel = () => {
+    const dirty = tab === 'rutina' ? routineDirty : nutritionDirty;
+    const sectionLabel = tab === 'rutina' ? 'la rutina' : 'el plan alimenticio';
+    if (dirty && !confirm(`¿Descartar cambios en ${sectionLabel} sin guardar?`)) return;
+    if (tab === 'rutina') setRoutineDirty(false);
+    else setNutritionDirty(false);
+    navigate('/coach');
+  };
+
   const handleSaveRoutine = async () => {
     if (!clientId) return;
     setSaving(true);
@@ -124,6 +135,7 @@ export function CoachClientEdit() {
         );
         setNotifyClient(false);
       }
+      await syncClientCoachMetaFromPlans(clientId);
       setRoutineDirty(false);
       flashSaved();
     } catch (e) {
@@ -146,6 +158,7 @@ export function CoachClientEdit() {
         );
         setNotifyClient(false);
       }
+      await syncClientCoachMetaFromPlans(clientId);
       setNutritionDirty(false);
       flashSaved();
     } catch (e) {
@@ -204,6 +217,21 @@ export function CoachClientEdit() {
     }));
     setRoutineDirty(true);
     setRoutine((r) => ({ ...r, exercises: [...r.exercises, ...newExercises] }));
+  };
+
+  const addManualExercise = () => {
+    const exercise: Exercise = {
+      id: nanoid(),
+      name: '',
+      sets: '',
+      reps: '',
+      restMin: '',
+      restSec: '',
+      notes: '',
+      tag: 'principal',
+    };
+    setRoutineDirty(true);
+    setRoutine((r) => ({ ...r, exercises: [...r.exercises, exercise] }));
   };
 
   const updateExercise = (id: string, patch: Partial<Exercise>) => {
@@ -401,14 +429,19 @@ export function CoachClientEdit() {
               </label>
             </div>
 
-            <button type="button" className="btn btn--pink btn--block" onClick={() => setPickerOpen(true)}>
-              + Agregar ejercicios
-            </button>
+            <div className="exercise-add-row">
+              <button type="button" className="btn btn--secondary btn--block" onClick={() => setPickerOpen(true)}>
+                + Desde biblioteca
+              </button>
+              <button type="button" className="btn btn--ghost btn--block" onClick={addManualExercise}>
+                + Agregar manual
+              </button>
+            </div>
           </div>
 
           {routine.exercises.length === 0 ? (
             <p className="empty-hint">
-              Sin ejercicios para este día. Toca “Agregar ejercicios” y elige de la biblioteca.
+              Sin ejercicios para este día. Agrégalos desde la biblioteca o escríbelos a mano (calentamiento, enfriamiento, etc.).
             </p>
           ) : (
             <div className="exercise-list">
@@ -445,14 +478,29 @@ export function CoachClientEdit() {
                         ↓
                       </button>
                     </div>
-                    <button type="button" className="icon-btn" onClick={() => removeExercise(ex.id)} aria-label="Quitar">
-                      🗑
+                    <button
+                      type="button"
+                      className="btn btn--icon-danger"
+                      onClick={() => removeExercise(ex.id)}
+                      aria-label={`Quitar ejercicio ${idx + 1}`}
+                    >
+                      Quitar
                     </button>
                   </div>
 
-                  <h3 className="exercise-title">{ex.name || 'Ejercicio'}</h3>
-                  <MediaPlayer url={ex.mediaUrl} alt={ex.name} compact />
+                  <div className="exercise-fields">
+                  <label>
+                    Nombre del ejercicio
+                    <input
+                      value={ex.name}
+                      onChange={(e) => updateExercise(ex.id, { name: e.target.value })}
+                      placeholder="Ej. Caminata en caminadora, estiramiento de cuádriceps..."
+                    />
+                  </label>
+                  {ex.mediaUrl && <MediaPlayer url={ex.mediaUrl} alt={ex.name} compact />}
 
+                  <div className="exercise-fields__group">
+                  <p className="field-label">Series y repeticiones</p>
                   <div className="field-row">
                     <label>
                       Series
@@ -470,7 +518,9 @@ export function CoachClientEdit() {
                       />
                     </label>
                   </div>
+                  </div>
 
+                  <div className="exercise-fields__group">
                   <p className="field-label">Descanso entre series</p>
                   <div className="field-row">
                     <label>
@@ -490,6 +540,7 @@ export function CoachClientEdit() {
                       />
                     </label>
                   </div>
+                  </div>
 
                   <label>
                     Notas del ejercicio
@@ -500,10 +551,13 @@ export function CoachClientEdit() {
                       placeholder="Técnica, tempo, etc."
                     />
                   </label>
+                  </div>
                 </div>
               ))}
             </div>
           )}
+
+          <div className="sticky-actions-spacer" aria-hidden />
 
           <div className="sticky-actions">
             {error && <p className="form-error sticky-error">{error}</p>}
@@ -523,14 +577,24 @@ export function CoachClientEdit() {
             >
               Vaciar rutina del día
             </button>
-            <button
-              type="button"
-              className="btn btn--primary btn--block"
-              onClick={handleSaveRoutine}
-              disabled={saving}
-            >
-              {saving ? 'Guardando...' : saved ? '¡Guardado!' : 'Guardar rutina'}
-            </button>
+            <div className="sticky-actions__row">
+              <button
+                type="button"
+                className="btn btn--ghost"
+                onClick={handleCancel}
+                disabled={saving}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                className="btn btn--primary"
+                onClick={handleSaveRoutine}
+                disabled={saving}
+              >
+                {saving ? 'Guardando...' : saved ? '¡Guardado!' : 'Guardar rutina'}
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -628,8 +692,13 @@ export function CoachClientEdit() {
                   placeholder="Desayuno, comida, cena, snack..."
                   list="meal-presets"
                 />
-                <button type="button" className="icon-btn" onClick={() => removeMeal(meal.id)} aria-label="Quitar comida">
-                  🗑
+                <button
+                  type="button"
+                  className="btn btn--icon-danger"
+                  onClick={() => removeMeal(meal.id)}
+                  aria-label="Quitar comida"
+                >
+                  Quitar
                 </button>
               </div>
 
@@ -675,7 +744,7 @@ export function CoachClientEdit() {
                 </div>
               ))}
 
-              <button type="button" className="btn btn--pink btn--block" onClick={() => addFood(meal.id)}>
+              <button type="button" className="btn btn--ghost btn--block" onClick={() => addFood(meal.id)}>
                 + Agregar alimento
               </button>
             </div>
@@ -695,9 +764,11 @@ export function CoachClientEdit() {
             ))}
           </div>
 
-          <button type="button" className="btn btn--outline-pink btn--block" onClick={() => addMeal()}>
+          <button type="button" className="btn btn--secondary btn--block" onClick={() => addMeal()}>
             + Agregar sección
           </button>
+
+          <div className="sticky-actions-spacer" aria-hidden />
 
           <div className="sticky-actions">
             {error && <p className="form-error sticky-error">{error}</p>}
@@ -717,14 +788,24 @@ export function CoachClientEdit() {
             >
               Vaciar plan del día
             </button>
-            <button
-              type="button"
-              className="btn btn--primary btn--block"
-              onClick={handleSaveNutrition}
-              disabled={saving}
-            >
-              {saving ? 'Guardando...' : saved ? '¡Guardado!' : `Guardar plan · ${DAY_NAMES[dayIndex]}`}
-            </button>
+            <div className="sticky-actions__row">
+              <button
+                type="button"
+                className="btn btn--ghost"
+                onClick={handleCancel}
+                disabled={saving}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                className="btn btn--primary"
+                onClick={handleSaveNutrition}
+                disabled={saving}
+              >
+                {saving ? 'Guardando...' : saved ? '¡Guardado!' : `Guardar plan · ${DAY_NAMES[dayIndex]}`}
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -733,6 +814,7 @@ export function CoachClientEdit() {
         open={pickerOpen}
         onClose={() => setPickerOpen(false)}
         onPick={addFromLibrary}
+        onManual={addManualExercise}
       />
     </div>
   );

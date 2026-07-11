@@ -11,10 +11,13 @@ import {
 import { nanoid } from 'nanoid';
 import { db } from './firebase';
 import { normalizeMediaUrl } from './mediaUrl';
-import { daysSinceDate, startOfTodayIso } from './dates';
+import { slugifyName } from './clientSlug';
+import { daysSinceDate, formatDateKey, startOfTodayIso } from './dates';
 import { CYCLE_DAYS } from '../types';
 import type {
   Client,
+  ClientCoachMeta,
+  ClientCoachOverview,
   LibraryExercise,
   NutritionPlan,
   Routine,
@@ -63,12 +66,17 @@ export function subscribeClient(
 export async function createClient(clientId: string, name: string) {
   await setDoc(doc(requireDb(), 'clients', clientId), {
     name,
+    slug: slugifyName(name),
     createdAt: new Date().toISOString(),
   });
 }
 
 export async function updateClientName(clientId: string, name: string) {
-  await setDoc(doc(requireDb(), 'clients', clientId), { name }, { merge: true });
+  await setDoc(
+    doc(requireDb(), 'clients', clientId),
+    { name, slug: slugifyName(name) },
+    { merge: true }
+  );
 }
 
 export async function deleteClient(clientId: string) {
@@ -564,4 +572,192 @@ export function subscribeFeedback(
     items.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
     onData(items);
   });
+}
+
+function uniqueNonEmpty(values: (string | undefined)[]): string {
+  return [...new Set(values.map((v) => (v ?? '').trim()).filter(Boolean))].join(' · ');
+}
+
+function buildDailyCompletion(
+  cycleStartedAt: string | null,
+  progressByDate: Record<string, boolean>
+): boolean[] {
+  if (!cycleStartedAt) return Array(CYCLE_DAYS).fill(false);
+
+  const start = new Date(cycleStartedAt);
+  start.setHours(0, 0, 0, 0);
+
+  return Array.from({ length: CYCLE_DAYS }, (_, index) => {
+    const date = new Date(start);
+    date.setDate(start.getDate() + index);
+    return Boolean(progressByDate[formatDateKey(date)]);
+  });
+}
+
+function aggregateCoachMetaFromPlans(
+  routines: (Routine | null)[],
+  nutritionPlans: (NutritionPlan | null)[]
+): ClientCoachMeta {
+  const activeRoutines = routines.filter(hasRoutineContent) as Routine[];
+  const activeNutrition = nutritionPlans.filter(hasNutritionContent) as NutritionPlan[];
+
+  const routineParts = uniqueNonEmpty(
+    activeRoutines.flatMap((routine) => [routine.classification, routine.level])
+  );
+  const nutritionParts = uniqueNonEmpty(
+    activeNutrition.flatMap((plan) => [plan.objective, plan.dietType])
+  );
+  const calories = uniqueNonEmpty(activeNutrition.map((plan) => plan.calories));
+
+  return {
+    routineGoal: routineParts,
+    nutritionGoal: nutritionParts,
+    calories: calories.split(' · ')[0] ?? '',
+  };
+}
+
+export async function syncClientCoachMetaFromPlans(clientId: string) {
+  const firestore = requireDb();
+  const routines: (Routine | null)[] = [];
+  const nutritionPlans: (NutritionPlan | null)[] = [];
+
+  for (let i = 0; i < 7; i++) {
+    const routineSnap = await getDoc(doc(firestore, 'routines', `${clientId}_${i}`));
+    routines.push(routineSnap.exists() ? (routineSnap.data() as Routine) : null);
+
+    const nutritionSnap = await getDoc(doc(firestore, 'nutrition', `${clientId}_${i}`));
+    nutritionPlans.push(nutritionSnap.exists() ? (nutritionSnap.data() as NutritionPlan) : null);
+  }
+
+  const aggregated = aggregateCoachMetaFromPlans(routines, nutritionPlans);
+  const clientSnap = await getDoc(doc(firestore, 'clients', clientId));
+  const existing = clientSnap.exists() ? (clientSnap.data() as Client).coachMeta : undefined;
+
+  const coachMeta: ClientCoachMeta = {
+    routineGoal: aggregated.routineGoal || existing?.routineGoal || '',
+    nutritionGoal: aggregated.nutritionGoal || existing?.nutritionGoal || '',
+    calories: aggregated.calories || existing?.calories || '',
+    updatedAt: new Date().toISOString(),
+  };
+
+  await setDoc(doc(firestore, 'clients', clientId), { coachMeta }, { merge: true });
+}
+
+export async function updateClientCoachMeta(clientId: string, meta: Partial<ClientCoachMeta>) {
+  const firestore = requireDb();
+  const ref = doc(firestore, 'clients', clientId);
+  const snap = await getDoc(ref);
+  const existing = snap.exists() ? (snap.data() as Client).coachMeta : undefined;
+
+  await setDoc(
+    ref,
+    {
+      coachMeta: {
+        ...existing,
+        ...meta,
+        updatedAt: new Date().toISOString(),
+      },
+    },
+    { merge: true }
+  );
+}
+
+export function subscribeClientCoachOverview(
+  clientId: string,
+  onData: (overview: ClientCoachOverview) => void
+): Unsubscribe {
+  const firestore = requireDb();
+  const unsubs: Unsubscribe[] = [];
+
+  let client: Client | null = null;
+  let progressCount = 0;
+  let routines: (Routine | null)[] = Array(7).fill(null);
+  let nutritionPlans: (NutritionPlan | null)[] = Array(7).fill(null);
+  let progressByDate: Record<string, boolean> = {};
+  const routineReady = Array(7).fill(false);
+  const nutritionReady = Array(7).fill(false);
+  let clientReady = false;
+  let progressReady = false;
+  let weeksReady = false;
+
+  const emit = () => {
+    if (
+      !clientReady ||
+      !progressReady ||
+      !weeksReady ||
+      routineReady.some((ready) => !ready) ||
+      nutritionReady.some((ready) => !ready)
+    ) {
+      return;
+    }
+
+    const aggregated = aggregateCoachMetaFromPlans(routines, nutritionPlans);
+    const coachMeta = client?.coachMeta;
+    const cycleStartedAt = client?.cycleStartedAt ?? null;
+    const activeRoutineDays = routines.filter(hasRoutineContent).length;
+
+    onData({
+      progressCount,
+      cycleStartedAt,
+      cycleDay: cycleStartedAt
+        ? Math.min(daysSinceDate(cycleStartedAt) + 1, CYCLE_DAYS)
+        : 1,
+      activeRoutineDays,
+      routineGoal: coachMeta?.routineGoal || aggregated.routineGoal || '',
+      nutritionGoal: coachMeta?.nutritionGoal || aggregated.nutritionGoal || '',
+      calories: coachMeta?.calories || aggregated.calories || '',
+      dailyCompletion: buildDailyCompletion(cycleStartedAt, progressByDate),
+    });
+  };
+
+  unsubs.push(
+    onSnapshot(doc(firestore, 'clients', clientId), (snap) => {
+      client = snap.exists() ? (snap.data() as Client) : null;
+      clientReady = true;
+      emit();
+    })
+  );
+
+  unsubs.push(
+    onSnapshot(doc(firestore, 'progressCount', clientId), (snap) => {
+      progressCount = snap.exists() ? (snap.data() as ProgressCount).count : 0;
+      progressReady = true;
+      emit();
+    })
+  );
+
+  unsubs.push(
+    onSnapshot(collection(firestore, 'weekProgress'), (snap) => {
+      const merged: Record<string, boolean> = {};
+      snap.forEach((entry) => {
+        if (!entry.id.startsWith(`${clientId}_`)) return;
+        const data = entry.data() as WeekProgress;
+        Object.entries(data).forEach(([dateKey, value]) => {
+          if (typeof value === 'boolean') merged[dateKey] = value;
+        });
+      });
+      progressByDate = merged;
+      weeksReady = true;
+      emit();
+    })
+  );
+
+  for (let i = 0; i < 7; i++) {
+    unsubs.push(
+      onSnapshot(doc(firestore, 'routines', `${clientId}_${i}`), (snap) => {
+        routines[i] = snap.exists() ? (snap.data() as Routine) : null;
+        routineReady[i] = true;
+        emit();
+      })
+    );
+    unsubs.push(
+      onSnapshot(doc(firestore, 'nutrition', `${clientId}_${i}`), (snap) => {
+        nutritionPlans[i] = snap.exists() ? (snap.data() as NutritionPlan) : null;
+        nutritionReady[i] = true;
+        emit();
+      })
+    );
+  }
+
+  return () => unsubs.forEach((unsub) => unsub());
 }

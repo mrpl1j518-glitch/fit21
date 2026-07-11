@@ -15,12 +15,9 @@
   overflow: hidden;
   padding: var(--space-lg) !important;
   margin-bottom: var(--space-md);
-  border: none !important;
-  background:
-    radial-gradient(ellipse at 0% 0%, rgba(59, 30, 120, 0.07) 0%, transparent 55%),
-    radial-gradient(ellipse at 100% 100%, rgba(233, 30, 127, 0.06) 0%, transparent 50%),
-    #ffffff !important;
-  box-shadow: var(--shadow-md), 0 0 0 1px rgba(59, 30, 120, 0.07) !important;
+  border: 1px solid var(--color-border-subtle) !important;
+  background: #ffffff !important;
+  box-shadow: var(--shadow-sm) !important;
 }
 
 .coach-header-card::before {
@@ -29,8 +26,8 @@
   top: 0;
   left: 0;
   right: 0;
-  height: 3px;
-  background: linear-gradient(90deg, var(--fit21-purple), var(--fit21-pink), var(--fit21-teal));
+  height: 2px;
+  background: var(--color-primary);
 }
 
 .coach-header {
@@ -156,11 +153,11 @@
 .client-item {
   margin-bottom: 0;
   padding: var(--space-lg) !important;
-  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .client-item:hover {
-  box-shadow: var(--shadow-lg);
+  box-shadow: var(--shadow-md);
   border-color: var(--color-border);
 }
 
@@ -264,10 +261,8 @@
   padding: var(--space-2xl) var(--space-lg) !important;
 }
 
-.empty-card__icon {
-  display: block;
-  font-size: 2rem;
-  margin-bottom: var(--space-sm);
+.empty-card .empty-mark {
+  margin-bottom: var(--space-md);
 }
 
 .empty-card h2 {
@@ -304,6 +299,22 @@
   margin-bottom: var(--space-md);
 }
 
+.coach-feedback__chevron {
+  display: inline-block;
+  width: 0.45rem;
+  height: 0.45rem;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(-45deg);
+  transition: transform 0.15s ease;
+  flex-shrink: 0;
+  margin-left: var(--space-sm);
+}
+
+.coach-feedback__toggle[aria-expanded='true'] .coach-feedback__chevron {
+  transform: rotate(45deg);
+}
+
 .coach-feedback__summary {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -330,12 +341,22 @@
   line-height: 1.2;
 }
 
-.coach-feedback__stat-value--emoji {
-  font-size: 1.6rem;
+.coach-feedback__stat-value--rating {
+  font-size: 1.1rem;
+  letter-spacing: -0.02em;
+}
+
+.coach-feedback__rating {
+  font-size: var(--font-caption);
+  font-weight: var(--weight-semibold);
+  color: var(--color-accent);
+  padding: 0.1rem 0.45rem;
+  border-radius: var(--radius-full);
+  background: rgba(20, 166, 166, 0.1);
 }
 
 .coach-feedback__stat-label {
-  font-size: var(--font-label);
+  font-size: var(--font-caption);
   font-weight: var(--weight-medium);
   color: var(--color-text-muted);
   line-height: 1.3;

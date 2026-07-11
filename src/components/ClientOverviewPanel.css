@@ -1,0 +1,62 @@
+.client-overview {
+  margin-top: var(--space-sm);
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+.client-overview__stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-sm);
+}
+
+.client-overview__chip {
+  display: inline-block;
+  font-size: var(--font-caption);
+  font-weight: var(--weight-semibold);
+  padding: 0.2rem 0.55rem;
+  border-radius: var(--radius-full);
+  background: rgba(59, 30, 120, 0.08);
+  color: var(--color-primary);
+}
+
+.client-overview__chip--cal {
+  background: rgba(20, 166, 166, 0.1);
+  color: #0d7a7a;
+}
+
+.client-overview__meta p {
+  margin: 0 0 0.25rem;
+  font-size: var(--font-caption);
+  color: var(--color-text-muted);
+  line-height: 1.4;
+}
+
+.client-overview__meta strong {
+  color: var(--color-text);
+}
+
+.client-overview__edit-btn {
+  margin-top: 0.15rem;
+  padding-left: 0 !important;
+}
+
+.client-overview__edit {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.client-overview__edit label {
+  font-size: var(--font-caption);
+}
+
+.client-overview__edit input {
+  margin-top: 0.2rem;
+}
+
+.client-overview__edit-actions {
+  display: flex;
+  gap: var(--space-sm);
+}

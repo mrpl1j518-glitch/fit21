@@ -1,0 +1,44 @@
+.coach-progress-chart {
+  margin-top: var(--space-sm);
+}
+
+.coach-progress-chart__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-xs);
+}
+
+.coach-progress-chart__label {
+  font-size: var(--font-caption);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-muted);
+}
+
+.coach-progress-chart__stat {
+  font-size: var(--font-caption);
+  color: var(--color-text-muted);
+}
+
+.coach-progress-chart__grid {
+  display: grid;
+  grid-template-columns: repeat(14, 1fr);
+  gap: 3px;
+}
+
+.coach-progress-chart__day {
+  aspect-ratio: 1;
+  border-radius: 3px;
+  background: rgba(59, 30, 120, 0.08);
+  border: 1px solid rgba(59, 30, 120, 0.1);
+}
+
+.coach-progress-chart__day--done {
+  background: rgba(20, 166, 166, 0.75);
+  border-color: rgba(20, 166, 166, 0.85);
+}
+
+.coach-progress-chart__day--today {
+  box-shadow: 0 0 0 2px rgba(20, 166, 166, 0.45);
+}

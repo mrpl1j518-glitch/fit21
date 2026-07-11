@@ -6,15 +6,23 @@
 
 .notification-bell__btn {
   position: relative;
-  width: 36px;
-  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
   padding: 0;
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-md);
   background: white;
-  font-size: 1rem;
+  color: var(--color-primary);
   cursor: pointer;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, color 0.15s ease;
+}
+
+.notification-bell__icon {
+  width: 1.15rem;
+  height: 1.15rem;
 }
 
 .notification-bell__btn:hover {
@@ -56,11 +64,9 @@
 
 .notification-bell__head {
   margin: 0 0 var(--space-sm);
-  font-size: var(--font-label);
-  font-weight: var(--weight-bold);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--color-text-subtle);
+  font-size: var(--font-caption);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-muted);
 }
 
 .notification-bell__empty {
