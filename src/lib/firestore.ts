@@ -84,18 +84,53 @@ export async function saveRoutine(
 
 export function subscribeNutrition(
   clientId: string,
+  dayIndex: number,
   onData: (plan: NutritionPlan | null) => void
 ): Unsubscribe {
-  return onSnapshot(doc(requireDb(), 'nutrition', clientId), (snap) => {
-    onData(snap.exists() ? (snap.data() as NutritionPlan) : null);
+  const firestore = requireDb();
+  const dayRef = doc(firestore, 'nutrition', `${clientId}_${dayIndex}`);
+  const legacyRef = doc(firestore, 'nutrition', clientId);
+
+  let dayPlan: NutritionPlan | null = null;
+  let legacyPlan: NutritionPlan | null = null;
+  let dayReady = false;
+  let legacyReady = false;
+
+  const emit = () => {
+    if (!dayReady || !legacyReady) return;
+    const dayHasMeals = Boolean(dayPlan && dayPlan.meals.length > 0);
+    onData(dayHasMeals ? dayPlan : legacyPlan);
+  };
+
+  const unsubDay = onSnapshot(dayRef, (snap) => {
+    dayPlan = snap.exists() ? (snap.data() as NutritionPlan) : null;
+    dayReady = true;
+    emit();
   });
+
+  const unsubLegacy = onSnapshot(legacyRef, (snap) => {
+    legacyPlan = snap.exists() ? (snap.data() as NutritionPlan) : null;
+    legacyReady = true;
+    emit();
+  });
+
+  return () => {
+    unsubDay();
+    unsubLegacy();
+  };
 }
 
-export async function saveNutrition(clientId: string, plan: NutritionPlan) {
+export async function saveNutrition(
+  clientId: string,
+  dayIndex: number,
+  plan: NutritionPlan
+) {
   const firestore = requireDb();
-  await setDoc(doc(firestore, 'nutrition', clientId), plan);
+  const docId = `${clientId}_${dayIndex}`;
+  await setDoc(doc(firestore, 'nutrition', docId), plan);
   await setDoc(doc(firestore, 'nutritionHistory', nanoid()), {
     clientId,
+    dayIndex,
     meals: plan.meals,
     planName: plan.planName ?? '',
     objective: plan.objective ?? '',

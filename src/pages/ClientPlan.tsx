@@ -11,8 +11,21 @@ import {
   subscribeProgressCount,
   setDayComplete,
 } from '../lib/firestore';
-import { DAY_NAMES, formatRest, type Routine, type NutritionPlan, type Exercise } from '../types';
-import { getDayIndex, getTodayKey, getWeekStartKey } from '../lib/dates';
+import {
+  DAY_NAMES,
+  DAY_SHORT,
+  formatRest,
+  type Routine,
+  type NutritionPlan,
+  type Exercise,
+} from '../types';
+import {
+  getDayIndex,
+  getTodayKey,
+  getWeekStartKey,
+  formatSpanishDate,
+  dateKeyForDayIndex,
+} from '../lib/dates';
 import './ClientPlan.css';
 
 const TAG_LABELS: Record<string, string> = {
@@ -22,19 +35,25 @@ const TAG_LABELS: Record<string, string> = {
   cardio: 'Cardio',
 };
 
+const WHATSAPP_URL = 'https://wa.me/528110751529';
+
 export function ClientPlan() {
   const { clientId } = useParams<{ clientId: string }>();
+  const todayIndex = getDayIndex();
+  const [selectedDay, setSelectedDay] = useState(todayIndex);
   const [clientName, setClientName] = useState('');
   const [notFound, setNotFound] = useState(false);
   const [routine, setRoutine] = useState<Routine | null>(null);
   const [nutrition, setNutrition] = useState<NutritionPlan | null>(null);
-  const [todayComplete, setTodayComplete] = useState(false);
+  const [dayComplete, setDayCompleteState] = useState(false);
   const [progressCount, setProgressCount] = useState(0);
   const [toggling, setToggling] = useState(false);
 
-  const dayIndex = getDayIndex();
   const todayKey = getTodayKey();
   const weekStart = getWeekStartKey();
+  const selectedDateKey = dateKeyForDayIndex(selectedDay);
+  const isToday = selectedDay === todayIndex;
+  const todayLabel = formatSpanishDate(new Date());
 
   useEffect(() => {
     if (!clientId) return;
@@ -59,20 +78,20 @@ export function ClientPlan() {
 
   useEffect(() => {
     if (!clientId) return;
-    return subscribeRoutine(clientId, dayIndex, setRoutine);
-  }, [clientId, dayIndex]);
+    return subscribeRoutine(clientId, selectedDay, setRoutine);
+  }, [clientId, selectedDay]);
 
   useEffect(() => {
     if (!clientId) return;
-    return subscribeNutrition(clientId, setNutrition);
-  }, [clientId]);
+    return subscribeNutrition(clientId, selectedDay, setNutrition);
+  }, [clientId, selectedDay]);
 
   useEffect(() => {
     if (!clientId) return;
     return subscribeWeekProgress(clientId, weekStart, (progress) => {
-      setTodayComplete(Boolean(progress[todayKey]));
+      setDayCompleteState(Boolean(progress[selectedDateKey]));
     });
-  }, [clientId, weekStart, todayKey]);
+  }, [clientId, weekStart, selectedDateKey]);
 
   useEffect(() => {
     if (!clientId) return;
@@ -80,10 +99,10 @@ export function ClientPlan() {
   }, [clientId]);
 
   const handleToggleComplete = async () => {
-    if (!clientId || toggling) return;
+    if (!clientId || toggling || !isToday) return;
     setToggling(true);
     try {
-      await setDayComplete(clientId, weekStart, todayKey, !todayComplete, todayComplete);
+      await setDayComplete(clientId, weekStart, todayKey, !dayComplete, dayComplete);
     } finally {
       setToggling(false);
     }
@@ -103,35 +122,61 @@ export function ClientPlan() {
 
   const hasNutrition = nutrition && nutrition.meals.length > 0;
   const exercises = routine?.exercises ?? [];
+  const todayComplete = isToday && dayComplete;
 
   return (
     <div className="client-plan">
       <header className="client-header">
         <Logo size="sm" />
         <div>
-          <p className="client-greeting">Hola, {clientName || '...'}</p>
+          <p className="client-greeting">
+            Hola, {clientName || '...'}
+          </p>
+          <p className="client-date">{todayLabel}</p>
           <p className="client-cycle">
             Día <strong>{Math.min(progressCount + (todayComplete ? 0 : 1), 21)}</strong> de tu ciclo de 21
           </p>
         </div>
       </header>
 
+      <div className="day-tabs client-day-tabs" role="tablist" aria-label="Día de la semana">
+        {DAY_SHORT.map((name, i) => (
+          <button
+            key={name}
+            type="button"
+            role="tab"
+            aria-selected={selectedDay === i}
+            className={`day-tab ${selectedDay === i ? 'day-tab--active' : ''} ${i === todayIndex ? 'day-tab--today' : ''}`}
+            onClick={() => setSelectedDay(i)}
+          >
+            {name}
+          </button>
+        ))}
+      </div>
+
       <section className="progress-section card">
         <DayPips count={progressCount} />
-        <label className="complete-check">
-          <input
-            type="checkbox"
-            checked={todayComplete}
-            onChange={handleToggleComplete}
-            disabled={toggling}
-          />
-          <span>¡Hoy completé mi rutina!</span>
-        </label>
+        {isToday ? (
+          <label className="complete-check">
+            <input
+              type="checkbox"
+              checked={dayComplete}
+              onChange={handleToggleComplete}
+              disabled={toggling}
+            />
+            <span>¡Hoy completé mi rutina!</span>
+          </label>
+        ) : (
+          <p className="viewing-day-hint">
+            Estás viendo el {DAY_NAMES[selectedDay].toLowerCase()}
+            {dayComplete ? ' · Día marcado como completado' : ''}
+          </p>
+        )}
       </section>
 
       <section className="routine-section card">
         <div className="routine-section__head">
-          <h2>{routine?.dayName || DAY_NAMES[dayIndex]}</h2>
+          <h2>{routine?.dayName || DAY_NAMES[selectedDay]}</h2>
           {routine?.classification && (
             <span className="routine-meta">{routine.classification}</span>
           )}
@@ -140,7 +185,7 @@ export function ClientPlan() {
 
         {exercises.length === 0 ? (
           <p className="empty-state">
-            Hoy no tienes ejercicios asignados. Tu coach te avisará cuando actualice tu rutina.
+            No hay ejercicios asignados para {DAY_NAMES[selectedDay].toLowerCase()}.
           </p>
         ) : (
           <div className="client-exercises">
@@ -167,10 +212,10 @@ export function ClientPlan() {
       </section>
 
       <section className="nutrition-section card">
-        <h2>Plan de alimentación</h2>
+        <h2>Plan de alimentación · {DAY_NAMES[selectedDay]}</h2>
         {!hasNutrition ? (
           <p className="empty-state nutrition-empty">
-            Por ahora no tienes plan de nutrición asignado
+            Por ahora no tienes plan de nutrición asignado para este día
           </p>
         ) : (
           <>
@@ -201,7 +246,16 @@ export function ClientPlan() {
       </section>
 
       <footer className="client-footer">
-        <p>Constancia que transforma</p>
+        <p>
+          Fit 21, Claudia Chávez, todos los derechos reservados, Julio 2026.
+        </p>
+        <p>
+          Para dudas, nos comunicaremos vía WhatsApp al{' '}
+          <a href={WHATSAPP_URL} target="_blank" rel="noreferrer">
+            811 075 1529
+          </a>
+          .
+        </p>
       </footer>
     </div>
   );

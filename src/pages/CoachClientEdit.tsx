@@ -71,10 +71,10 @@ export function CoachClientEdit() {
 
   useEffect(() => {
     if (!clientId) return;
-    return subscribeNutrition(clientId, (data) => {
+    return subscribeNutrition(clientId, dayIndex, (data) => {
       setNutrition(data ?? emptyNutrition());
     });
-  }, [clientId]);
+  }, [clientId, dayIndex]);
 
   const flashSaved = () => {
     setSaved(true);
@@ -96,7 +96,7 @@ export function CoachClientEdit() {
     if (!clientId) return;
     setSaving(true);
     try {
-      await saveNutrition(clientId, nutrition);
+      await saveNutrition(clientId, dayIndex, nutrition);
       flashSaved();
     } finally {
       setSaving(false);
@@ -373,7 +373,23 @@ export function CoachClientEdit() {
 
       {tab === 'nutricion' && (
         <div className="edit-section">
+          <div className="day-tabs" role="tablist" aria-label="Día de la semana">
+            {DAY_SHORT.map((name, i) => (
+              <button
+                key={name}
+                type="button"
+                role="tab"
+                aria-selected={dayIndex === i}
+                className={`day-tab ${dayIndex === i ? 'day-tab--active' : ''}`}
+                onClick={() => setDayIndex(i)}
+              >
+                {name}
+              </button>
+            ))}
+          </div>
+
           <div className="card">
+            <p className="day-card__label">Plan · {DAY_NAMES[dayIndex]}</p>
             <label>
               Nombre del plan alimenticio
               <input
@@ -498,7 +514,7 @@ export function CoachClientEdit() {
               onClick={handleSaveNutrition}
               disabled={saving}
             >
-              {saving ? 'Guardando...' : saved ? '¡Guardado!' : 'Guardar plan'}
+              {saving ? 'Guardando...' : saved ? '¡Guardado!' : `Guardar plan · ${DAY_NAMES[dayIndex]}`}
             </button>
           </div>
         </div>

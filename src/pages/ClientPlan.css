@@ -37,9 +37,55 @@
   overflow-wrap: anywhere;
 }
 
+.client-date {
+  margin: 0.15rem 0 0;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--fit21-pink);
+  text-transform: capitalize;
+}
+
 .client-cycle {
   margin: 0.2rem 0 0;
   font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.client-day-tabs {
+  display: flex;
+  gap: 0.35rem;
+  margin-bottom: 0.85rem;
+  overflow-x: auto;
+  padding-bottom: 0.15rem;
+  -webkit-overflow-scrolling: touch;
+}
+
+.client-day-tabs .day-tab {
+  flex: 1;
+  min-width: 2.6rem;
+  padding: 0.55rem 0.35rem;
+  border: none;
+  border-radius: 10px;
+  background: rgba(233, 30, 127, 0.1);
+  color: var(--fit21-pink);
+  font-size: 0.75rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.client-day-tabs .day-tab--active {
+  background: var(--fit21-pink);
+  color: white;
+}
+
+.client-day-tabs .day-tab--today:not(.day-tab--active) {
+  box-shadow: inset 0 0 0 2px var(--fit21-teal);
+}
+
+.viewing-day-hint {
+  margin: 1rem 0 0;
+  font-size: 0.85rem;
+  font-weight: 600;
   color: var(--text-muted);
 }
 
@@ -263,7 +309,19 @@
 .client-footer {
   text-align: center;
   margin-top: 1.5rem;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   color: var(--text-muted);
   font-weight: 600;
+  line-height: 1.45;
+  padding: 0 0.25rem;
+}
+
+.client-footer p {
+  margin: 0 0 0.5rem;
+}
+
+.client-footer a {
+  color: var(--fit21-teal);
+  font-weight: 800;
+  text-decoration: none;
 }

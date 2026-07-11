@@ -27,3 +27,26 @@ export function getDayIndex(date = new Date()): number {
 export function getTodayKey(): string {
   return formatDateKey(new Date());
 }
+
+/** Fecha en español: "jueves 10 de julio" */
+export function formatSpanishDate(date = new Date()): string {
+  const formatted = date.toLocaleDateString('es-MX', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+  });
+  return formatted.replace(',', '');
+}
+
+/** Fecha de un día de la semana actual (0=Lun … 6=Dom) */
+export function dateForDayIndex(dayIndex: number, from = new Date()): Date {
+  const monday = getMondayOfWeek(from);
+  const d = new Date(monday);
+  d.setDate(monday.getDate() + dayIndex);
+  return d;
+}
+
+export function dateKeyForDayIndex(dayIndex: number, from = new Date()): string {
+  return formatDateKey(dateForDayIndex(dayIndex, from));
+}
+
