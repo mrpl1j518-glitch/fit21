@@ -21,7 +21,6 @@ import {
 } from '../types';
 import {
   getDayIndex,
-  getTodayKey,
   getWeekStartKey,
   formatSpanishDate,
   dateKeyForDayIndex,
@@ -49,7 +48,6 @@ export function ClientPlan() {
   const [progressCount, setProgressCount] = useState(0);
   const [toggling, setToggling] = useState(false);
 
-  const todayKey = getTodayKey();
   const weekStart = getWeekStartKey();
   const selectedDateKey = dateKeyForDayIndex(selectedDay);
   const isToday = selectedDay === todayIndex;
