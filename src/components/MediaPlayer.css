@@ -1,0 +1,51 @@
+.media-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #f3f0f8 0%, #e8f7f7 100%);
+  border: 2px dashed #c9b8e0;
+  border-radius: 12px;
+  color: #3B1E78;
+  font-size: 0.85rem;
+  font-weight: 600;
+  min-height: 160px;
+}
+
+.media-placeholder--compact {
+  min-height: 100px;
+}
+
+.media-youtube {
+  position: relative;
+  width: 100%;
+  padding-bottom: 56.25%;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #000;
+}
+
+.media-youtube--compact {
+  padding-bottom: 50%;
+}
+
+.media-youtube iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.media-video,
+.media-image {
+  width: 100%;
+  border-radius: 12px;
+  object-fit: cover;
+  max-height: 280px;
+  background: #f0f0f0;
+}
+
+.media-video--compact,
+.media-image--compact {
+  max-height: 140px;
+}

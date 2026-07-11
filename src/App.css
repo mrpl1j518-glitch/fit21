@@ -1,0 +1,147 @@
+:root {
+  --fit21-purple: #3B1E78;
+  --fit21-pink: #E91E7F;
+  --fit21-teal: #14A6A6;
+  --bg: #FAFAFA;
+  --text: #2d1b4e;
+  --text-muted: #6b5f7a;
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  color: var(--text);
+  background-color: var(--bg);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background:
+    radial-gradient(ellipse at top right, rgba(233, 30, 127, 0.06) 0%, transparent 50%),
+    radial-gradient(ellipse at bottom left, rgba(20, 166, 166, 0.08) 0%, transparent 50%),
+    var(--bg);
+}
+
+#root {
+  min-height: 100vh;
+}
+
+h1, h2, h3 {
+  font-weight: 800;
+}
+
+input,
+textarea,
+select {
+  font: inherit;
+  padding: 0.6rem 0.75rem;
+  border: 2px solid #e8e4ef;
+  border-radius: 10px;
+  background: white;
+  color: var(--text);
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+  border-color: var(--fit21-teal);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.6rem 1rem;
+  border: none;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  text-decoration: none;
+  transition: transform 0.15s, opacity 0.15s;
+}
+
+.btn:active {
+  transform: scale(0.98);
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn--primary {
+  background: var(--fit21-purple);
+  color: white;
+}
+
+.btn--teal {
+  background: var(--fit21-teal);
+  color: white;
+}
+
+.btn--pink {
+  background: var(--fit21-pink);
+  color: white;
+}
+
+.btn--ghost {
+  background: transparent;
+  color: var(--fit21-purple);
+  border: 2px solid #e8e4ef;
+}
+
+.btn--danger {
+  background: #fce4ec;
+  color: #ad1457;
+}
+
+.btn--small {
+  padding: 0.35rem 0.65rem;
+  font-size: 0.8rem;
+}
+
+.btn--block {
+  width: 100%;
+  margin-top: 0.5rem;
+}
+
+.home {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 2rem 1.5rem;
+  text-align: center;
+  gap: 1.25rem;
+}
+
+.home__text {
+  max-width: 320px;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.home__warn {
+  margin-top: 1rem;
+  padding: 0.75rem 1rem;
+  background: #fff3e0;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  color: #e65100;
+  max-width: 400px;
+}
+
+.home__warn code {
+  background: rgba(0, 0, 0, 0.06);
+  padding: 0.1rem 0.3rem;
+  border-radius: 4px;
+}

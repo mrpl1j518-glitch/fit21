@@ -1,0 +1,224 @@
+.client-plan {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 1rem 1rem 2.5rem;
+}
+
+.client-plan--error {
+  text-align: center;
+  padding-top: 3rem;
+}
+
+.client-plan--error h1 {
+  color: var(--fit21-purple);
+}
+
+.client-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.client-greeting {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--fit21-purple);
+}
+
+.client-cycle {
+  margin: 0.2rem 0 0;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.client-cycle strong {
+  color: var(--fit21-pink);
+  font-size: 1.1rem;
+}
+
+.progress-section {
+  text-align: center;
+  padding: 1.5rem 1rem;
+}
+
+.complete-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 1.25rem;
+  font-weight: 700;
+  color: var(--fit21-purple);
+  cursor: pointer;
+}
+
+.complete-check input {
+  width: 22px;
+  height: 22px;
+  accent-color: var(--fit21-teal);
+}
+
+.routine-section__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.routine-section h2 {
+  margin: 0;
+  color: var(--fit21-purple);
+}
+
+.routine-meta {
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  background: rgba(233, 30, 127, 0.12);
+  color: var(--fit21-pink);
+  text-transform: capitalize;
+}
+
+.routine-comment {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  margin: 0 0 1rem;
+  padding: 0.75rem;
+  background: var(--bg);
+  border-radius: 8px;
+  border-left: 3px solid var(--fit21-teal);
+}
+
+.client-exercises {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.client-exercise {
+  border-top: 1px solid #eee8f5;
+  padding-top: 1rem;
+}
+
+.client-exercise:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+
+.client-exercise__head {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.client-exercise__num {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--fit21-purple);
+  color: white;
+  font-weight: 800;
+  font-size: 0.9rem;
+  flex-shrink: 0;
+}
+
+.client-exercise h3 {
+  margin: 0;
+  color: var(--fit21-purple);
+}
+
+.tag-badge {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  margin-top: 0.2rem;
+  color: var(--fit21-teal);
+}
+
+.client-exercise__stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+  font-size: 0.85rem;
+}
+
+.client-exercise__stats strong {
+  color: var(--fit21-purple);
+}
+
+.client-exercise__notes {
+  margin: 0.75rem 0 0;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.nutrition-section h2 {
+  margin: 0 0 1rem;
+  color: var(--fit21-purple);
+}
+
+.nutrition-empty {
+  text-align: center;
+  padding: 1.5rem;
+  color: var(--text-muted);
+}
+
+.plan-title {
+  font-weight: 800;
+  color: var(--fit21-pink);
+  margin: 0 0 0.25rem;
+}
+
+.plan-meta {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin: 0 0 1rem;
+  text-transform: capitalize;
+}
+
+.client-meal {
+  margin-bottom: 1.25rem;
+}
+
+.client-meal h3 {
+  margin: 0 0 0.75rem;
+  font-size: 1rem;
+  color: var(--fit21-teal);
+  border-bottom: 2px solid rgba(20, 166, 166, 0.25);
+  padding-bottom: 0.35rem;
+}
+
+.client-food {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+  align-items: flex-start;
+}
+
+.client-food .media-image--compact,
+.client-food .media-placeholder--compact {
+  width: 80px;
+  flex-shrink: 0;
+}
+
+.food-equiv {
+  margin: 0.25rem 0 0;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.client-footer {
+  text-align: center;
+  margin-top: 1.5rem;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-weight: 600;
+}

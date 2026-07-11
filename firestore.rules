@@ -1,0 +1,10 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Sin autenticación real: lectura/escritura abierta para coach + clientas de confianza.
+    // La "seguridad" depende de clientIds no adivinables y del PIN del coach en el frontend.
+    match /{document=**} {
+      allow read, write: if true;
+    }
+  }
+}

@@ -1,0 +1,187 @@
+import {
+  collection,
+  doc,
+  setDoc,
+  deleteDoc,
+  onSnapshot,
+  type Unsubscribe,
+} from 'firebase/firestore';
+import { nanoid } from 'nanoid';
+import { db } from './firebase';
+import type {
+  Client,
+  NutritionPlan,
+  Routine,
+  WeekProgress,
+  ProgressCount,
+} from '../types';
+
+function requireDb() {
+  if (!db) throw new Error('Firebase no está configurado. Revisa tu archivo .env');
+  return db;
+}
+
+export function generateClientId(): string {
+  return nanoid(10);
+}
+
+export function subscribeClients(onData: (clients: Record<string, Client>) => void): Unsubscribe {
+  return onSnapshot(collection(requireDb(), 'clients'), (snap) => {
+    const data: Record<string, Client> = {};
+    snap.forEach((d) => {
+      data[d.id] = d.data() as Client;
+    });
+    onData(data);
+  });
+}
+
+export async function createClient(clientId: string, name: string) {
+  await setDoc(doc(requireDb(), 'clients', clientId), {
+    name,
+    createdAt: new Date().toISOString(),
+  });
+}
+
+export async function updateClientName(clientId: string, name: string) {
+  await setDoc(doc(requireDb(), 'clients', clientId), { name }, { merge: true });
+}
+
+export async function deleteClient(clientId: string) {
+  const firestore = requireDb();
+  await deleteDoc(doc(firestore, 'clients', clientId));
+}
+
+export function subscribeRoutine(
+  clientId: string,
+  dayIndex: number,
+  onData: (routine: Routine | null) => void
+): Unsubscribe {
+  const docId = `${clientId}_${dayIndex}`;
+  return onSnapshot(doc(requireDb(), 'routines', docId), (snap) => {
+    onData(snap.exists() ? (snap.data() as Routine) : null);
+  });
+}
+
+export async function saveRoutine(
+  clientId: string,
+  dayIndex: number,
+  routine: Routine
+) {
+  const firestore = requireDb();
+  const docId = `${clientId}_${dayIndex}`;
+  await setDoc(doc(firestore, 'routines', docId), routine);
+  await setDoc(doc(firestore, 'routineHistory', nanoid()), {
+    clientId,
+    dayIndex,
+    exercises: routine.exercises,
+    dayName: routine.dayName ?? '',
+    comment: routine.comment ?? '',
+    savedAt: new Date().toISOString(),
+  });
+}
+
+export function subscribeNutrition(
+  clientId: string,
+  onData: (plan: NutritionPlan | null) => void
+): Unsubscribe {
+  return onSnapshot(doc(requireDb(), 'nutrition', clientId), (snap) => {
+    onData(snap.exists() ? (snap.data() as NutritionPlan) : null);
+  });
+}
+
+export async function saveNutrition(clientId: string, plan: NutritionPlan) {
+  const firestore = requireDb();
+  await setDoc(doc(firestore, 'nutrition', clientId), plan);
+  await setDoc(doc(firestore, 'nutritionHistory', nanoid()), {
+    clientId,
+    meals: plan.meals,
+    planName: plan.planName ?? '',
+    objective: plan.objective ?? '',
+    dietType: plan.dietType ?? '',
+    savedAt: new Date().toISOString(),
+  });
+}
+
+export function subscribeWeekProgress(
+  clientId: string,
+  weekStart: string,
+  onData: (progress: WeekProgress) => void
+): Unsubscribe {
+  const docId = `${clientId}_${weekStart}`;
+  return onSnapshot(doc(requireDb(), 'weekProgress', docId), (snap) => {
+    onData(snap.exists() ? (snap.data() as WeekProgress) : {});
+  });
+}
+
+export async function setDayComplete(
+  clientId: string,
+  weekStart: string,
+  dateKey: string,
+  complete: boolean,
+  previousComplete: boolean
+) {
+  const firestore = requireDb();
+  const docId = `${clientId}_${weekStart}`;
+  await setDoc(
+    doc(firestore, 'weekProgress', docId),
+    { [dateKey]: complete },
+    { merge: true }
+  );
+
+  if (complete && !previousComplete) {
+    await incrementProgressCount(clientId, 1);
+  } else if (!complete && previousComplete) {
+    await incrementProgressCount(clientId, -1);
+  }
+}
+
+async function incrementProgressCount(clientId: string, delta: number) {
+  const firestore = requireDb();
+  const ref = doc(firestore, 'progressCount', clientId);
+  return new Promise<void>((resolve, reject) => {
+    const unsub = onSnapshot(
+      ref,
+      async (snap) => {
+        unsub();
+        const current = snap.exists() ? (snap.data() as ProgressCount).count : 0;
+        const next = Math.max(0, Math.min(21, current + delta));
+        try {
+          await setDoc(ref, { count: next }, { merge: true });
+          resolve();
+        } catch (e) {
+          reject(e);
+        }
+      },
+      reject
+    );
+  });
+}
+
+export function subscribeProgressCount(
+  clientId: string,
+  onData: (count: number) => void
+): Unsubscribe {
+  return onSnapshot(doc(requireDb(), 'progressCount', clientId), (snap) => {
+    onData(snap.exists() ? (snap.data() as ProgressCount).count : 0);
+  });
+}
+
+export function subscribeAllRoutinesForClient(
+  clientId: string,
+  onData: (hasAny: boolean) => void
+): Unsubscribe {
+  const firestore = requireDb();
+  const unsubs: Unsubscribe[] = [];
+  let routines: (Routine | null)[] = Array(7).fill(null);
+
+  for (let i = 0; i < 7; i++) {
+    const unsub = onSnapshot(doc(firestore, 'routines', `${clientId}_${i}`), (snap) => {
+      routines[i] = snap.exists() ? (snap.data() as Routine) : null;
+      const hasAny = routines.some((r) => r && r.exercises.length > 0);
+      onData(hasAny);
+    });
+    unsubs.push(unsub);
+  }
+
+  return () => unsubs.forEach((u) => u());
+}
