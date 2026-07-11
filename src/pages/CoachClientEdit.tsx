@@ -9,7 +9,10 @@ import {
   saveRoutine,
   subscribeNutrition,
   saveNutrition,
+  clearRoutineDay,
+  clearNutritionDay,
 } from '../lib/firestore';
+import { formatFirebaseError } from '../lib/mediaUrl';
 import {
   DAY_NAMES,
   DAY_SHORT,
@@ -55,6 +58,9 @@ export function CoachClientEdit() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [error, setError] = useState('');
+  const [routineDirty, setRoutineDirty] = useState(false);
+  const [nutritionDirty, setNutritionDirty] = useState(false);
 
   useEffect(() => {
     if (!clientId) return;
@@ -64,18 +70,26 @@ export function CoachClientEdit() {
   }, [clientId]);
 
   useEffect(() => {
+    setRoutineDirty(false);
+    setNutritionDirty(false);
+    setError('');
+  }, [dayIndex, tab]);
+
+  useEffect(() => {
     if (!clientId) return;
     return subscribeRoutine(clientId, dayIndex, (data) => {
+      if (routineDirty) return;
       setRoutine(data ?? emptyRoutine());
     });
-  }, [clientId, dayIndex]);
+  }, [clientId, dayIndex, routineDirty]);
 
   useEffect(() => {
     if (!clientId) return;
     return subscribeNutrition(clientId, dayIndex, (data) => {
+      if (nutritionDirty) return;
       setNutrition(data ?? emptyNutrition());
     });
-  }, [clientId, dayIndex]);
+  }, [clientId, dayIndex, nutritionDirty]);
 
   const flashSaved = () => {
     setSaved(true);
@@ -85,9 +99,13 @@ export function CoachClientEdit() {
   const handleSaveRoutine = async () => {
     if (!clientId) return;
     setSaving(true);
+    setError('');
     try {
       await saveRoutine(clientId, dayIndex, routine);
+      setRoutineDirty(false);
       flashSaved();
+    } catch (e) {
+      setError(formatFirebaseError(e));
     } finally {
       setSaving(false);
     }
@@ -96,9 +114,47 @@ export function CoachClientEdit() {
   const handleSaveNutrition = async () => {
     if (!clientId) return;
     setSaving(true);
+    setError('');
     try {
       await saveNutrition(clientId, dayIndex, nutrition);
+      setNutritionDirty(false);
       flashSaved();
+    } catch (e) {
+      setError(formatFirebaseError(e));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleClearRoutine = async () => {
+    if (!clientId) return;
+    if (!confirm(`¿Vaciar la rutina de ${DAY_NAMES[dayIndex]}? Se borrarán todos los ejercicios de este día.`)) return;
+    setSaving(true);
+    setError('');
+    try {
+      await clearRoutineDay(clientId, dayIndex);
+      setRoutine(emptyRoutine());
+      setRoutineDirty(false);
+      flashSaved();
+    } catch (e) {
+      setError(formatFirebaseError(e));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleClearNutrition = async () => {
+    if (!clientId) return;
+    if (!confirm(`¿Vaciar el plan de alimentación de ${DAY_NAMES[dayIndex]}?`)) return;
+    setSaving(true);
+    setError('');
+    try {
+      await clearNutritionDay(clientId, dayIndex);
+      setNutrition(emptyNutrition());
+      setNutritionDirty(false);
+      flashSaved();
+    } catch (e) {
+      setError(formatFirebaseError(e));
     } finally {
       setSaving(false);
     }
@@ -117,10 +173,12 @@ export function CoachClientEdit() {
       notes: '',
       tag: 'principal' as const,
     }));
+    setRoutineDirty(true);
     setRoutine((r) => ({ ...r, exercises: [...r.exercises, ...newExercises] }));
   };
 
   const updateExercise = (id: string, patch: Partial<Exercise>) => {
+    setRoutineDirty(true);
     setRoutine((r) => ({
       ...r,
       exercises: r.exercises.map((e) => (e.id === id ? { ...e, ...patch } : e)),
@@ -128,6 +186,7 @@ export function CoachClientEdit() {
   };
 
   const removeExercise = (id: string) => {
+    setRoutineDirty(true);
     setRoutine((r) => ({
       ...r,
       exercises: r.exercises.filter((e) => e.id !== id),
@@ -135,6 +194,7 @@ export function CoachClientEdit() {
   };
 
   const addMeal = (preset?: string) => {
+    setNutritionDirty(true);
     setNutrition((n) => ({
       ...n,
       meals: [...n.meals, { id: nanoid(), mealName: preset ?? '', foods: [] }],
@@ -142,6 +202,7 @@ export function CoachClientEdit() {
   };
 
   const updateMeal = (mealId: string, patch: Partial<Meal>) => {
+    setNutritionDirty(true);
     setNutrition((n) => ({
       ...n,
       meals: n.meals.map((m) => (m.id === mealId ? { ...m, ...patch } : m)),
@@ -149,6 +210,7 @@ export function CoachClientEdit() {
   };
 
   const removeMeal = (mealId: string) => {
+    setNutritionDirty(true);
     setNutrition((n) => ({
       ...n,
       meals: n.meals.filter((m) => m.id !== mealId),
@@ -157,6 +219,7 @@ export function CoachClientEdit() {
 
   const addFood = (mealId: string) => {
     const food: Food = { id: nanoid(), name: '', photoUrl: '', equivalents: '' };
+    setNutritionDirty(true);
     setNutrition((n) => ({
       ...n,
       meals: n.meals.map((m) =>
@@ -166,6 +229,7 @@ export function CoachClientEdit() {
   };
 
   const updateFood = (mealId: string, foodId: string, patch: Partial<Food>) => {
+    setNutritionDirty(true);
     setNutrition((n) => ({
       ...n,
       meals: n.meals.map((m) =>
@@ -177,6 +241,7 @@ export function CoachClientEdit() {
   };
 
   const removeFood = (mealId: string, foodId: string) => {
+    setNutritionDirty(true);
     setNutrition((n) => ({
       ...n,
       meals: n.meals.map((m) =>
@@ -233,7 +298,10 @@ export function CoachClientEdit() {
               Nombre de la rutina
               <input
                 value={routine.dayName ?? ''}
-                onChange={(e) => setRoutine((r) => ({ ...r, dayName: e.target.value }))}
+                onChange={(e) => {
+                  setRoutineDirty(true);
+                  setRoutine((r) => ({ ...r, dayName: e.target.value }));
+                }}
                 placeholder="Ej. Pierna + glúteo"
               />
             </label>
@@ -242,7 +310,10 @@ export function CoachClientEdit() {
               Comentarios (opcional)
               <textarea
                 value={routine.comment ?? ''}
-                onChange={(e) => setRoutine((r) => ({ ...r, comment: e.target.value }))}
+                onChange={(e) => {
+                  setRoutineDirty(true);
+                  setRoutine((r) => ({ ...r, comment: e.target.value }));
+                }}
                 placeholder="Instrucciones generales para tu clienta..."
                 rows={2}
               />
@@ -253,7 +324,10 @@ export function CoachClientEdit() {
                 Clasificación
                 <select
                   value={routine.classification ?? ''}
-                  onChange={(e) => setRoutine((r) => ({ ...r, classification: e.target.value }))}
+                  onChange={(e) => {
+                    setRoutineDirty(true);
+                    setRoutine((r) => ({ ...r, classification: e.target.value }));
+                  }}
                 >
                   <option value="">— Seleccionar —</option>
                   {CLASSIFICATIONS.map((c) => (
@@ -265,7 +339,10 @@ export function CoachClientEdit() {
                 Nivel
                 <select
                   value={routine.level ?? ''}
-                  onChange={(e) => setRoutine((r) => ({ ...r, level: e.target.value }))}
+                  onChange={(e) => {
+                    setRoutineDirty(true);
+                    setRoutine((r) => ({ ...r, level: e.target.value }));
+                  }}
                 >
                   <option value="">— Seleccionar —</option>
                   {LEVELS.map((l) => (
@@ -360,6 +437,15 @@ export function CoachClientEdit() {
           )}
 
           <div className="sticky-actions">
+            {error && <p className="form-error sticky-error">{error}</p>}
+            <button
+              type="button"
+              className="btn btn--danger btn--block"
+              onClick={handleClearRoutine}
+              disabled={saving}
+            >
+              Vaciar rutina del día
+            </button>
             <button
               type="button"
               className="btn btn--primary btn--block"
@@ -395,7 +481,10 @@ export function CoachClientEdit() {
               Nombre del plan alimenticio
               <input
                 value={nutrition.planName ?? ''}
-                onChange={(e) => setNutrition((n) => ({ ...n, planName: e.target.value }))}
+                onChange={(e) => {
+                  setNutritionDirty(true);
+                  setNutrition((n) => ({ ...n, planName: e.target.value }));
+                }}
                 placeholder="Ej. Plan definición semana 1"
               />
             </label>
@@ -404,7 +493,10 @@ export function CoachClientEdit() {
                 Objetivo
                 <select
                   value={nutrition.objective ?? ''}
-                  onChange={(e) => setNutrition((n) => ({ ...n, objective: e.target.value }))}
+                  onChange={(e) => {
+                    setNutritionDirty(true);
+                    setNutrition((n) => ({ ...n, objective: e.target.value }));
+                  }}
                 >
                   <option value="">— Seleccionar —</option>
                   {NUTRITION_OBJECTIVES.map((o) => (
@@ -416,7 +508,10 @@ export function CoachClientEdit() {
                 Tipo de dieta
                 <select
                   value={nutrition.dietType ?? ''}
-                  onChange={(e) => setNutrition((n) => ({ ...n, dietType: e.target.value }))}
+                  onChange={(e) => {
+                    setNutritionDirty(true);
+                    setNutrition((n) => ({ ...n, dietType: e.target.value }));
+                  }}
                 >
                   <option value="">— Seleccionar —</option>
                   {DIET_TYPES.map((d) => (
@@ -428,7 +523,10 @@ export function CoachClientEdit() {
                 Calorías del día
                 <input
                   value={nutrition.calories ?? ''}
-                  onChange={(e) => setNutrition((n) => ({ ...n, calories: e.target.value.replace(/[^\d]/g, '') }))}
+                  onChange={(e) => {
+                    setNutritionDirty(true);
+                    setNutrition((n) => ({ ...n, calories: e.target.value.replace(/[^\d]/g, '') }));
+                  }}
                   placeholder="Ej. 2000"
                   inputMode="numeric"
                 />
@@ -518,6 +616,15 @@ export function CoachClientEdit() {
           </button>
 
           <div className="sticky-actions">
+            {error && <p className="form-error sticky-error">{error}</p>}
+            <button
+              type="button"
+              className="btn btn--danger btn--block"
+              onClick={handleClearNutrition}
+              disabled={saving}
+            >
+              Vaciar plan del día
+            </button>
             <button
               type="button"
               className="btn btn--primary btn--block"

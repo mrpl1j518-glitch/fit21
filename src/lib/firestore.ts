@@ -93,16 +93,18 @@ export function subscribeNutrition(
 
   let dayPlan: NutritionPlan | null = null;
   let legacyPlan: NutritionPlan | null = null;
+  let dayExists = false;
   let dayReady = false;
   let legacyReady = false;
 
   const emit = () => {
     if (!dayReady || !legacyReady) return;
-    const dayHasMeals = Boolean(dayPlan && dayPlan.meals.length > 0);
-    onData(dayHasMeals ? dayPlan : legacyPlan);
+    // Si ya existe doc del día (aunque esté vacío), NO volver al plan legacy
+    onData(dayExists ? dayPlan : legacyPlan);
   };
 
   const unsubDay = onSnapshot(dayRef, (snap) => {
+    dayExists = snap.exists();
     dayPlan = snap.exists() ? (snap.data() as NutritionPlan) : null;
     dayReady = true;
     emit();
@@ -128,6 +130,12 @@ export async function saveNutrition(
   const firestore = requireDb();
   const docId = `${clientId}_${dayIndex}`;
   await setDoc(doc(firestore, 'nutrition', docId), plan);
+  // Si había un plan “global” viejo, lo limpiamos para que no reaparezca
+  try {
+    await deleteDoc(doc(firestore, 'nutrition', clientId));
+  } catch {
+    // ok si no existía
+  }
   await setDoc(doc(firestore, 'nutritionHistory', nanoid()), {
     clientId,
     dayIndex,
@@ -137,6 +145,27 @@ export async function saveNutrition(
     dietType: plan.dietType ?? '',
     calories: plan.calories ?? '',
     savedAt: new Date().toISOString(),
+  });
+}
+
+export async function clearNutritionDay(clientId: string, dayIndex: number) {
+  const empty: NutritionPlan = {
+    planName: '',
+    objective: '',
+    dietType: '',
+    calories: '',
+    meals: [],
+  };
+  await saveNutrition(clientId, dayIndex, empty);
+}
+
+export async function clearRoutineDay(clientId: string, dayIndex: number) {
+  await saveRoutine(clientId, dayIndex, {
+    dayName: '',
+    comment: '',
+    classification: '',
+    level: '',
+    exercises: [],
   });
 }
 
