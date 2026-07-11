@@ -9,7 +9,7 @@ import {
   generateClientId,
   subscribeAllRoutinesForClient,
 } from '../lib/firestore';
-import type { Client } from '../types';
+import { initials, type Client } from '../types';
 import './CoachDashboard.css';
 
 interface ClientRow extends Client {
@@ -21,6 +21,7 @@ export function CoachDashboard() {
   const [clients, setClients] = useState<Record<string, Client>>({});
   const [search, setSearch] = useState('');
   const [newName, setNewName] = useState('');
+  const [showAdd, setShowAdd] = useState(false);
   const [routineStatus, setRoutineStatus] = useState<Record<string, boolean>>({});
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -58,6 +59,7 @@ export function CoachDashboard() {
     const id = generateClientId();
     await createClient(id, name);
     setNewName('');
+    setShowAdd(false);
   };
 
   const handleCopyLink = async (clientId: string) => {
@@ -83,47 +85,68 @@ export function CoachDashboard() {
     <div className="coach-page">
       <header className="coach-header">
         <Logo size="sm" />
-        <div>
-          <h1>Dashboard coach</h1>
-          <p className="coach-header__sub">Gestiona rutinas y planes de tus clientas</p>
+        <div className="coach-header__text">
+          <h1>Clientas</h1>
+          <p className="coach-header__sub">Rutinas y planes · FIT21</p>
         </div>
       </header>
 
-      <section className="coach-add card">
-        <h2>Nueva clienta</h2>
-        <div className="coach-add__row">
-          <input
-            type="text"
-            placeholder="Nombre de la clienta"
-            value={newName}
-            onChange={(e) => setNewName(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
-          />
-          <button className="btn btn--primary" onClick={handleAdd}>
-            Agregar
-          </button>
-        </div>
-      </section>
+      <button
+        className="btn btn--pink btn--block coach-register"
+        onClick={() => setShowAdd((v) => !v)}
+      >
+        + Registrar clienta
+      </button>
 
-      <section className="coach-list card">
-        <div className="coach-list__toolbar">
-          <h2>Clientas ({rows.length})</h2>
+      {showAdd && (
+        <section className="coach-add card">
+          <h2>Nueva clienta</h2>
+          <div className="coach-add__row">
+            <input
+              type="text"
+              placeholder="Nombre de la clienta"
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
+              autoFocus
+            />
+            <button className="btn btn--primary" onClick={handleAdd}>
+              Agregar
+            </button>
+          </div>
+        </section>
+      )}
+
+      {rows.length > 0 && (
+        <div className="coach-search-wrap">
           <input
             type="search"
-            placeholder="Buscar..."
+            placeholder="Buscar clienta..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="coach-search"
           />
         </div>
+      )}
 
-        {rows.length === 0 ? (
-          <p className="empty-state">Aún no hay clientas. Agrega la primera arriba.</p>
-        ) : (
-          <ul className="client-list">
-            {rows.map((client) => (
-              <li key={client.id} className="client-item">
-                <div className="client-item__main">
+      {rows.length === 0 ? (
+        <section className="empty-card card">
+          <div className="empty-card__ring" aria-hidden />
+          <h2>Registra a tu primera clienta</h2>
+          <p>Asigna su rutina, plan de alimentación y envíale su link personal por WhatsApp.</p>
+          <button className="btn btn--pink btn--block" onClick={() => setShowAdd(true)}>
+            Registrar primera clienta
+          </button>
+        </section>
+      ) : (
+        <ul className="client-list">
+          {rows.map((client) => (
+            <li key={client.id} className="client-item card">
+              <div className="client-item__main">
+                <span className="client-avatar" aria-hidden>
+                  {initials(client.name) || '?'}
+                </span>
+                <div className="client-item__info">
                   {editingId === client.id ? (
                     <div className="client-item__edit">
                       <input
@@ -147,37 +170,37 @@ export function CoachDashboard() {
                     </>
                   )}
                 </div>
-                <div className="client-item__actions">
-                  <button
-                    className="btn btn--small btn--teal"
-                    onClick={() => handleCopyLink(client.id)}
-                  >
-                    {copiedId === client.id ? '¡Copiado!' : 'Copiar link'}
-                  </button>
-                  <Link to={`/coach/client/${client.id}`} className="btn btn--small btn--primary">
-                    Editar
-                  </Link>
-                  <button
-                    className="btn btn--small btn--ghost"
-                    onClick={() => {
-                      setEditingId(client.id);
-                      setEditName(client.name);
-                    }}
-                  >
-                    Renombrar
-                  </button>
-                  <button
-                    className="btn btn--small btn--danger"
-                    onClick={() => handleDelete(client.id, client.name)}
-                  >
-                    Eliminar
-                  </button>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+              </div>
+              <div className="client-item__actions">
+                <button
+                  className="btn btn--small btn--teal"
+                  onClick={() => handleCopyLink(client.id)}
+                >
+                  {copiedId === client.id ? '¡Copiado!' : 'Copiar link'}
+                </button>
+                <Link to={`/coach/client/${client.id}`} className="btn btn--small btn--primary">
+                  Editar
+                </Link>
+                <button
+                  className="btn btn--small btn--ghost"
+                  onClick={() => {
+                    setEditingId(client.id);
+                    setEditName(client.name);
+                  }}
+                >
+                  Renombrar
+                </button>
+                <button
+                  className="btn btn--small btn--danger"
+                  onClick={() => handleDelete(client.id, client.name)}
+                >
+                  Eliminar
+                </button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

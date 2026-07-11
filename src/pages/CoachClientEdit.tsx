@@ -9,7 +9,21 @@ import {
   subscribeNutrition,
   saveNutrition,
 } from '../lib/firestore';
-import { DAY_NAMES, type Exercise, type Routine, type Meal, type Food, type NutritionPlan } from '../types';
+import {
+  DAY_NAMES,
+  DAY_SHORT,
+  CLASSIFICATIONS,
+  LEVELS,
+  EXERCISE_TAGS,
+  NUTRITION_OBJECTIVES,
+  DIET_TYPES,
+  MEAL_PRESETS,
+  type Exercise,
+  type Routine,
+  type Meal,
+  type Food,
+  type NutritionPlan,
+} from '../types';
 import './CoachClientEdit.css';
 
 type Tab = 'rutina' | 'nutricion';
@@ -60,13 +74,17 @@ export function CoachClientEdit() {
     });
   }, [clientId]);
 
+  const flashSaved = () => {
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  };
+
   const handleSaveRoutine = async () => {
     if (!clientId) return;
     setSaving(true);
     try {
       await saveRoutine(clientId, dayIndex, routine);
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
+      flashSaved();
     } finally {
       setSaving(false);
     }
@@ -77,8 +95,7 @@ export function CoachClientEdit() {
     setSaving(true);
     try {
       await saveNutrition(clientId, nutrition);
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
+      flashSaved();
     } finally {
       setSaving(false);
     }
@@ -91,9 +108,10 @@ export function CoachClientEdit() {
       mediaUrl: '',
       sets: '',
       reps: '',
-      rest: '',
+      restMin: '',
+      restSec: '',
       notes: '',
-      tag: '',
+      tag: 'principal',
     };
     setRoutine((r) => ({ ...r, exercises: [...r.exercises, ex] }));
   };
@@ -112,10 +130,10 @@ export function CoachClientEdit() {
     }));
   };
 
-  const addMeal = () => {
+  const addMeal = (preset?: string) => {
     setNutrition((n) => ({
       ...n,
-      meals: [...n.meals, { id: nanoid(), mealName: '', foods: [] }],
+      meals: [...n.meals, { id: nanoid(), mealName: preset ?? '', foods: [] }],
     }));
   };
 
@@ -177,114 +195,135 @@ export function CoachClientEdit() {
           className={`tab ${tab === 'rutina' ? 'tab--active' : ''}`}
           onClick={() => setTab('rutina')}
         >
-          Rutina
+          Entrenamiento
         </button>
         <button
           className={`tab ${tab === 'nutricion' ? 'tab--active' : ''}`}
           onClick={() => setTab('nutricion')}
         >
-          Nutrición
+          Plan alimenticio
         </button>
       </div>
 
       {tab === 'rutina' && (
-        <div className="edit-section card">
-          <div className="day-tabs">
-            {DAY_NAMES.map((name, i) => (
+        <div className="edit-section">
+          <div className="day-tabs" role="tablist" aria-label="Día de la semana">
+            {DAY_SHORT.map((name, i) => (
               <button
                 key={name}
+                type="button"
+                role="tab"
+                aria-selected={dayIndex === i}
                 className={`day-tab ${dayIndex === i ? 'day-tab--active' : ''}`}
                 onClick={() => setDayIndex(i)}
               >
-                {name.slice(0, 3)}
+                {name}
               </button>
             ))}
           </div>
 
-          <h2>{DAY_NAMES[dayIndex]}</h2>
+          <div className="card day-card">
+            <p className="day-card__label">{DAY_NAMES[dayIndex]}</p>
 
-          <div className="field-grid">
             <label>
-              Nombre del día
+              Nombre de la rutina
               <input
                 value={routine.dayName ?? ''}
                 onChange={(e) => setRoutine((r) => ({ ...r, dayName: e.target.value }))}
                 placeholder="Ej. Pierna + glúteo"
               />
             </label>
+
             <label>
-              Clasificación
-              <input
-                value={routine.classification ?? ''}
-                onChange={(e) => setRoutine((r) => ({ ...r, classification: e.target.value }))}
-                placeholder="Fuerza, hipertrofia..."
+              Comentarios (opcional)
+              <textarea
+                value={routine.comment ?? ''}
+                onChange={(e) => setRoutine((r) => ({ ...r, comment: e.target.value }))}
+                placeholder="Instrucciones generales para tu clienta..."
+                rows={2}
               />
             </label>
-            <label>
-              Nivel
-              <select
-                value={routine.level ?? ''}
-                onChange={(e) => setRoutine((r) => ({ ...r, level: e.target.value }))}
-              >
-                <option value="">—</option>
-                <option value="principiante">Principiante</option>
-                <option value="intermedio">Intermedio</option>
-                <option value="avanzado">Avanzado</option>
-              </select>
-            </label>
-          </div>
 
-          <label>
-            Comentario general
-            <textarea
-              value={routine.comment ?? ''}
-              onChange={(e) => setRoutine((r) => ({ ...r, comment: e.target.value }))}
-              placeholder="Notas para la clienta sobre este día..."
-              rows={2}
-            />
-          </label>
+            <div className="field-grid">
+              <label>
+                Clasificación
+                <select
+                  value={routine.classification ?? ''}
+                  onChange={(e) => setRoutine((r) => ({ ...r, classification: e.target.value }))}
+                >
+                  <option value="">— Seleccionar —</option>
+                  {CLASSIFICATIONS.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Nivel
+                <select
+                  value={routine.level ?? ''}
+                  onChange={(e) => setRoutine((r) => ({ ...r, level: e.target.value }))}
+                >
+                  <option value="">— Seleccionar —</option>
+                  {LEVELS.map((l) => (
+                    <option key={l} value={l}>{l}</option>
+                  ))}
+                </select>
+              </label>
+            </div>
 
-          <div className="exercises-header">
-            <h3>Ejercicios</h3>
-            <button className="btn btn--small btn--teal" onClick={addExercise}>
-              + Ejercicio
+            <button type="button" className="btn btn--pink btn--block" onClick={addExercise}>
+              + Agregar ejercicios
             </button>
           </div>
 
           {routine.exercises.length === 0 ? (
-            <p className="empty-state">Sin ejercicios para este día.</p>
+            <p className="empty-hint">Sin ejercicios para este día. Toca “Agregar ejercicios”.</p>
           ) : (
             <div className="exercise-list">
               {routine.exercises.map((ex, idx) => (
-                <div key={ex.id} className="exercise-card">
+                <div key={ex.id} className="exercise-card card">
                   <div className="exercise-card__head">
-                    <span className="exercise-num">#{idx + 1}</span>
-                    <button className="btn btn--small btn--danger" onClick={() => removeExercise(ex.id)}>
-                      Quitar
+                    <select
+                      className="tag-select"
+                      value={ex.tag ?? ''}
+                      onChange={(e) => updateExercise(ex.id, { tag: e.target.value as Exercise['tag'] })}
+                    >
+                      {EXERCISE_TAGS.map((t) => (
+                        <option key={t.value || 'none'} value={t.value}>{t.label}</option>
+                      ))}
+                    </select>
+                    <span className="exercise-num">{idx + 1}</span>
+                    <button type="button" className="icon-btn" onClick={() => removeExercise(ex.id)} aria-label="Quitar">
+                      🗑
                     </button>
                   </div>
+
                   <label>
-                    Nombre
+                    Nombre del ejercicio
                     <input
                       value={ex.name}
                       onChange={(e) => updateExercise(ex.id, { name: e.target.value })}
+                      placeholder="Ej. Flexión acostado"
                     />
                   </label>
+
                   <label>
                     Link imagen / gif / video
                     <input
                       value={ex.mediaUrl ?? ''}
                       onChange={(e) => updateExercise(ex.id, { mediaUrl: e.target.value })}
-                      placeholder="YouTube, Drive, .mp4..."
+                      placeholder="YouTube, Drive, .mp4, gif..."
                     />
                   </label>
                   <MediaPlayer url={ex.mediaUrl} alt={ex.name} compact />
+
                   <div className="field-row">
                     <label>
                       Series
                       <input
                         value={ex.sets ?? ''}
                         onChange={(e) => updateExercise(ex.id, { sets: e.target.value })}
+                        inputMode="numeric"
                       />
                     </label>
                     <label>
@@ -294,33 +333,35 @@ export function CoachClientEdit() {
                         onChange={(e) => updateExercise(ex.id, { reps: e.target.value })}
                       />
                     </label>
+                  </div>
+
+                  <p className="field-label">Tiempo de descanso</p>
+                  <div className="field-row">
                     <label>
-                      Descanso
+                      Min
                       <input
-                        value={ex.rest ?? ''}
-                        onChange={(e) => updateExercise(ex.id, { rest: e.target.value })}
-                        placeholder="60s"
+                        value={ex.restMin ?? ''}
+                        onChange={(e) => updateExercise(ex.id, { restMin: e.target.value })}
+                        inputMode="numeric"
+                      />
+                    </label>
+                    <label>
+                      Seg
+                      <input
+                        value={ex.restSec ?? ''}
+                        onChange={(e) => updateExercise(ex.id, { restSec: e.target.value })}
+                        inputMode="numeric"
                       />
                     </label>
                   </div>
+
                   <label>
-                    Etiqueta
-                    <select
-                      value={ex.tag ?? ''}
-                      onChange={(e) => updateExercise(ex.id, { tag: e.target.value as Exercise['tag'] })}
-                    >
-                      <option value="">—</option>
-                      <option value="calentamiento">Calentamiento</option>
-                      <option value="principal">Principal</option>
-                      <option value="cardio">Cardio</option>
-                    </select>
-                  </label>
-                  <label>
-                    Notas
+                    Notas del ejercicio
                     <textarea
                       value={ex.notes ?? ''}
                       onChange={(e) => updateExercise(ex.id, { notes: e.target.value })}
                       rows={2}
+                      placeholder="Técnica, tempo, etc."
                     />
                   </label>
                 </div>
@@ -328,128 +369,149 @@ export function CoachClientEdit() {
             </div>
           )}
 
-          <button
-            className="btn btn--primary btn--block"
-            onClick={handleSaveRoutine}
-            disabled={saving}
-          >
-            {saving ? 'Guardando...' : saved ? '¡Guardado!' : `Guardar ${DAY_NAMES[dayIndex]}`}
-          </button>
+          <div className="sticky-actions">
+            <button
+              type="button"
+              className="btn btn--primary btn--block"
+              onClick={handleSaveRoutine}
+              disabled={saving}
+            >
+              {saving ? 'Guardando...' : saved ? '¡Guardado!' : 'Guardar rutina'}
+            </button>
+          </div>
         </div>
       )}
 
       {tab === 'nutricion' && (
-        <div className="edit-section card">
-          <div className="field-grid">
+        <div className="edit-section">
+          <div className="card">
             <label>
-              Nombre del plan
+              Nombre del plan alimenticio
               <input
                 value={nutrition.planName ?? ''}
                 onChange={(e) => setNutrition((n) => ({ ...n, planName: e.target.value }))}
+                placeholder="Ej. Plan definición semana 1"
               />
             </label>
-            <label>
-              Objetivo
-              <select
-                value={nutrition.objective ?? ''}
-                onChange={(e) => setNutrition((n) => ({ ...n, objective: e.target.value }))}
-              >
-                <option value="">—</option>
-                <option value="volumen">Volumen</option>
-                <option value="definicion">Definición</option>
-                <option value="mantenimiento">Mantenimiento</option>
-              </select>
-            </label>
-            <label>
-              Tipo de dieta
-              <select
-                value={nutrition.dietType ?? ''}
-                onChange={(e) => setNutrition((n) => ({ ...n, dietType: e.target.value }))}
-              >
-                <option value="">—</option>
-                <option value="general">General</option>
-                <option value="vegana">Vegana</option>
-                <option value="vegetariana">Vegetariana</option>
-                <option value="keto">Keto</option>
-              </select>
-            </label>
+            <div className="field-grid">
+              <label>
+                Objetivo
+                <select
+                  value={nutrition.objective ?? ''}
+                  onChange={(e) => setNutrition((n) => ({ ...n, objective: e.target.value }))}
+                >
+                  <option value="">— Seleccionar —</option>
+                  {NUTRITION_OBJECTIVES.map((o) => (
+                    <option key={o} value={o}>{o}</option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Tipo de dieta
+                <select
+                  value={nutrition.dietType ?? ''}
+                  onChange={(e) => setNutrition((n) => ({ ...n, dietType: e.target.value }))}
+                >
+                  <option value="">— Seleccionar —</option>
+                  {DIET_TYPES.map((d) => (
+                    <option key={d} value={d}>{d}</option>
+                  ))}
+                </select>
+              </label>
+            </div>
           </div>
 
-          <div className="exercises-header">
-            <h3>Comidas</h3>
-            <button className="btn btn--small btn--pink" onClick={addMeal}>
-              + Comida
-            </button>
-          </div>
-
-          {nutrition.meals.length === 0 ? (
-            <p className="empty-state">Sin plan de alimentación aún.</p>
-          ) : (
-            nutrition.meals.map((meal) => (
-              <div key={meal.id} className="meal-card">
-                <div className="meal-card__head">
-                  <input
-                    className="meal-name-input"
-                    value={meal.mealName}
-                    onChange={(e) => updateMeal(meal.id, { mealName: e.target.value })}
-                    placeholder="Desayuno, comida, cena..."
-                  />
-                  <button className="btn btn--small btn--danger" onClick={() => removeMeal(meal.id)}>
-                    Quitar comida
-                  </button>
-                </div>
-
-                {meal.foods.map((food) => (
-                  <div key={food.id} className="food-card">
-                    <label>
-                      Alimento
-                      <input
-                        value={food.name}
-                        onChange={(e) => updateFood(meal.id, food.id, { name: e.target.value })}
-                      />
-                    </label>
-                    <label>
-                      Foto (URL)
-                      <input
-                        value={food.photoUrl ?? ''}
-                        onChange={(e) => updateFood(meal.id, food.id, { photoUrl: e.target.value })}
-                      />
-                    </label>
-                    {food.photoUrl && (
-                      <MediaPlayer url={food.photoUrl} alt={food.name} compact />
-                    )}
-                    <label>
-                      Equivalentes
-                      <textarea
-                        value={food.equivalents ?? ''}
-                        onChange={(e) => updateFood(meal.id, food.id, { equivalents: e.target.value })}
-                        placeholder="1 taza arroz = 2 tortillas..."
-                        rows={2}
-                      />
-                    </label>
-                    <button
-                      className="btn btn--small btn--ghost"
-                      onClick={() => removeFood(meal.id, food.id)}
-                    >
-                      Quitar alimento
-                    </button>
-                  </div>
-                ))}
-
-                <button className="btn btn--small btn--teal" onClick={() => addFood(meal.id)}>
-                  + Alimento
+          {nutrition.meals.map((meal) => (
+            <div key={meal.id} className="meal-card card">
+              <div className="meal-card__head">
+                <input
+                  className="meal-name-input"
+                  value={meal.mealName}
+                  onChange={(e) => updateMeal(meal.id, { mealName: e.target.value })}
+                  placeholder="Desayuno, comida, cena, snack..."
+                  list="meal-presets"
+                />
+                <button type="button" className="icon-btn" onClick={() => removeMeal(meal.id)} aria-label="Quitar comida">
+                  🗑
                 </button>
               </div>
-            ))
-          )}
 
-          <button
-            className="btn btn--primary btn--block"
-            onClick={handleSaveNutrition}
-            disabled={saving}
-          >
-            {saving ? 'Guardando...' : saved ? '¡Guardado!' : 'Guardar plan de nutrición'}
+              {meal.foods.length === 0 && (
+                <p className="empty-hint">No hay alimentos. Agrega el primero.</p>
+              )}
+
+              {meal.foods.map((food) => (
+                <div key={food.id} className="food-card">
+                  <label>
+                    Alimento
+                    <input
+                      value={food.name}
+                      onChange={(e) => updateFood(meal.id, food.id, { name: e.target.value })}
+                    />
+                  </label>
+                  <label>
+                    Foto (URL)
+                    <input
+                      value={food.photoUrl ?? ''}
+                      onChange={(e) => updateFood(meal.id, food.id, { photoUrl: e.target.value })}
+                    />
+                  </label>
+                  {food.photoUrl && (
+                    <MediaPlayer url={food.photoUrl} alt={food.name} compact />
+                  )}
+                  <label>
+                    Equivalentes
+                    <textarea
+                      value={food.equivalents ?? ''}
+                      onChange={(e) => updateFood(meal.id, food.id, { equivalents: e.target.value })}
+                      placeholder="1 taza arroz = 2 tortillas = ½ papa mediana"
+                      rows={2}
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    className="btn btn--small btn--ghost"
+                    onClick={() => removeFood(meal.id, food.id)}
+                  >
+                    Quitar alimento
+                  </button>
+                </div>
+              ))}
+
+              <button type="button" className="btn btn--pink btn--block" onClick={() => addFood(meal.id)}>
+                + Agregar alimento
+              </button>
+            </div>
+          ))}
+
+          <datalist id="meal-presets">
+            {MEAL_PRESETS.map((m) => (
+              <option key={m} value={m} />
+            ))}
+          </datalist>
+
+          <div className="meal-presets">
+            {MEAL_PRESETS.map((m) => (
+              <button key={m} type="button" className="btn btn--ghost btn--small" onClick={() => addMeal(m)}>
+                + {m}
+              </button>
+            ))}
+          </div>
+
+          <button type="button" className="btn btn--outline-pink btn--block" onClick={() => addMeal()}>
+            + Agregar sección
           </button>
+
+          <div className="sticky-actions">
+            <button
+              type="button"
+              className="btn btn--primary btn--block"
+              onClick={handleSaveNutrition}
+              disabled={saving}
+            >
+              {saving ? 'Guardando...' : saved ? '¡Guardado!' : 'Guardar plan'}
+            </button>
+          </div>
         </div>
       )}
     </div>

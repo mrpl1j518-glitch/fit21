@@ -11,12 +11,13 @@ import {
   subscribeProgressCount,
   setDayComplete,
 } from '../lib/firestore';
-import { DAY_NAMES, type Routine, type NutritionPlan, type Exercise } from '../types';
+import { DAY_NAMES, formatRest, type Routine, type NutritionPlan, type Exercise } from '../types';
 import { getDayIndex, getTodayKey, getWeekStartKey } from '../lib/dates';
 import './ClientPlan.css';
 
 const TAG_LABELS: Record<string, string> = {
   calentamiento: 'Calentamiento',
+  estiramiento: 'Estiramiento',
   principal: 'Principal',
   cardio: 'Cardio',
 };
@@ -156,7 +157,7 @@ export function ClientPlan() {
                 <div className="client-exercise__stats">
                   {ex.sets && <span><strong>Series:</strong> {ex.sets}</span>}
                   {ex.reps && <span><strong>Reps:</strong> {ex.reps}</span>}
-                  {ex.rest && <span><strong>Descanso:</strong> {ex.rest}</span>}
+                  {formatRest(ex) && <span><strong>Descanso:</strong> {formatRest(ex)}</span>}
                 </div>
                 {ex.notes && <p className="client-exercise__notes">{ex.notes}</p>}
               </article>
@@ -200,7 +201,7 @@ export function ClientPlan() {
       </section>
 
       <footer className="client-footer">
-        <p>Constancia que transforma 💪</p>
+        <p>Constancia que transforma</p>
       </footer>
     </div>
   );
