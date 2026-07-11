@@ -10,6 +10,7 @@ import { nanoid } from 'nanoid';
 import { db } from './firebase';
 import type {
   Client,
+  LibraryExercise,
   NutritionPlan,
   Routine,
   WeekProgress,
@@ -184,4 +185,36 @@ export function subscribeAllRoutinesForClient(
   }
 
   return () => unsubs.forEach((u) => u());
+}
+
+export function subscribeLibraryExercises(
+  onData: (items: Record<string, LibraryExercise>) => void
+): Unsubscribe {
+  return onSnapshot(collection(requireDb(), 'library-exercises'), (snap) => {
+    const data: Record<string, LibraryExercise> = {};
+    snap.forEach((d) => {
+      data[d.id] = d.data() as LibraryExercise;
+    });
+    onData(data);
+  });
+}
+
+export async function saveLibraryExercise(
+  id: string | null,
+  exercise: Omit<LibraryExercise, 'createdAt'> & { createdAt?: string }
+) {
+  const firestore = requireDb();
+  const docId = id ?? nanoid(10);
+  const payload: LibraryExercise = {
+    name: exercise.name.trim(),
+    mediaUrl: exercise.mediaUrl.trim(),
+    muscleGroup: exercise.muscleGroup?.trim() || '',
+    createdAt: exercise.createdAt ?? new Date().toISOString(),
+  };
+  await setDoc(doc(firestore, 'library-exercises', docId), payload, { merge: true });
+  return docId;
+}
+
+export async function deleteLibraryExercise(id: string) {
+  await deleteDoc(doc(requireDb(), 'library-exercises', id));
 }

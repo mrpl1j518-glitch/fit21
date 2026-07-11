@@ -98,6 +98,10 @@ export function CoachDashboard() {
         + Registrar clienta
       </button>
 
+      <Link to="/coach/biblioteca" className="btn btn--ghost btn--block coach-library-link">
+        Biblioteca de ejercicios
+      </Link>
+
       {showAdd && (
         <section className="coach-add card">
           <h2>Nueva clienta</h2>

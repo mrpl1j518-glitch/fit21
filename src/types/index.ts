@@ -5,6 +5,13 @@ export type ExerciseTag =
   | 'principal'
   | 'cardio';
 
+export interface LibraryExercise {
+  name: string;
+  mediaUrl: string;
+  muscleGroup?: string;
+  createdAt?: string;
+}
+
 export interface Exercise {
   id: string;
   name: string;
@@ -17,7 +24,7 @@ export interface Exercise {
   rest?: string;
   notes?: string;
   tag?: ExerciseTag;
-  /** v2: referencia opcional a library-exercises */
+  /** Copia desde library-exercises; la rutina guarda su propia copia del media */
   libraryExerciseId?: string;
 }
 

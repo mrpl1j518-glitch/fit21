@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { CoachPinGate, isCoachAuthenticated } from './components/CoachPinGate';
 import { CoachDashboard } from './pages/CoachDashboard';
 import { CoachClientEdit } from './pages/CoachClientEdit';
+import { ExerciseLibrary } from './pages/ExerciseLibrary';
 import { ClientPlan } from './pages/ClientPlan';
 import { Logo } from './components/Logo';
 import { isFirebaseConfigured } from './lib/firebase';
@@ -19,6 +20,7 @@ function CoachLayout() {
     <Routes>
       <Route index element={<CoachDashboard />} />
       <Route path="client/:clientId" element={<CoachClientEdit />} />
+      <Route path="biblioteca" element={<ExerciseLibrary />} />
     </Routes>
   );
 }

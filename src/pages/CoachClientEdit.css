@@ -153,6 +153,12 @@
   text-align: center;
 }
 
+.exercise-title {
+  margin: 0 0 0.65rem;
+  font-size: 1.05rem;
+  color: var(--fit21-purple);
+}
+
 .icon-btn {
   border: none;
   background: #f5f0fa;

@@ -45,6 +45,7 @@ Configurar en `.env` local y en Vercel/Netlify:
 
 ## Colecciones Firestore
 
+- `library-exercises` — catálogo reutilizable `{ name, mediaUrl, muscleGroup }`
 - `clients` — `{clientId}: { name }`
 - `routines` — `{clientId}_{dayIndex}: { exercises, dayName, comment, ... }`
 - `nutrition` — `{clientId}: { meals, planName, ... }`

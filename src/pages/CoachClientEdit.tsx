@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { nanoid } from 'nanoid';
 import { MediaPlayer } from '../components/MediaPlayer';
+import { ExercisePicker, type PickedExercise } from '../components/ExercisePicker';
 import {
   subscribeClients,
   subscribeRoutine,
@@ -52,6 +53,7 @@ export function CoachClientEdit() {
   const [nutrition, setNutrition] = useState<NutritionPlan>(emptyNutrition());
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   useEffect(() => {
     if (!clientId) return;
@@ -101,19 +103,20 @@ export function CoachClientEdit() {
     }
   };
 
-  const addExercise = () => {
-    const ex: Exercise = {
+  const addFromLibrary = (items: PickedExercise[]) => {
+    const newExercises: Exercise[] = items.map((item) => ({
       id: nanoid(),
-      name: '',
-      mediaUrl: '',
+      name: item.name,
+      mediaUrl: item.mediaUrl,
+      libraryExerciseId: item.libraryExerciseId,
       sets: '',
       reps: '',
       restMin: '',
       restSec: '',
       notes: '',
-      tag: 'principal',
-    };
-    setRoutine((r) => ({ ...r, exercises: [...r.exercises, ex] }));
+      tag: 'principal' as const,
+    }));
+    setRoutine((r) => ({ ...r, exercises: [...r.exercises, ...newExercises] }));
   };
 
   const updateExercise = (id: string, patch: Partial<Exercise>) => {
@@ -271,13 +274,15 @@ export function CoachClientEdit() {
               </label>
             </div>
 
-            <button type="button" className="btn btn--pink btn--block" onClick={addExercise}>
+            <button type="button" className="btn btn--pink btn--block" onClick={() => setPickerOpen(true)}>
               + Agregar ejercicios
             </button>
           </div>
 
           {routine.exercises.length === 0 ? (
-            <p className="empty-hint">Sin ejercicios para este día. Toca “Agregar ejercicios”.</p>
+            <p className="empty-hint">
+              Sin ejercicios para este día. Toca “Agregar ejercicios” y elige de la biblioteca.
+            </p>
           ) : (
             <div className="exercise-list">
               {routine.exercises.map((ex, idx) => (
@@ -298,23 +303,7 @@ export function CoachClientEdit() {
                     </button>
                   </div>
 
-                  <label>
-                    Nombre del ejercicio
-                    <input
-                      value={ex.name}
-                      onChange={(e) => updateExercise(ex.id, { name: e.target.value })}
-                      placeholder="Ej. Flexión acostado"
-                    />
-                  </label>
-
-                  <label>
-                    Link imagen / gif / video
-                    <input
-                      value={ex.mediaUrl ?? ''}
-                      onChange={(e) => updateExercise(ex.id, { mediaUrl: e.target.value })}
-                      placeholder="YouTube, Drive, .mp4, gif..."
-                    />
-                  </label>
+                  <h3 className="exercise-title">{ex.name || 'Ejercicio'}</h3>
                   <MediaPlayer url={ex.mediaUrl} alt={ex.name} compact />
 
                   <div className="field-row">
@@ -514,6 +503,12 @@ export function CoachClientEdit() {
           </div>
         </div>
       )}
+
+      <ExercisePicker
+        open={pickerOpen}
+        onClose={() => setPickerOpen(false)}
+        onPick={addFromLibrary}
+      />
     </div>
   );
 }
