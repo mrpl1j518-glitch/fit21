@@ -256,6 +256,7 @@ export async function setDayComplete(
 
   if (complete && !previousComplete) {
     await incrementProgressCount(clientId, 1);
+    await ensureClientCycleStartedOnFirstProgress(clientId);
   } else if (!complete && previousComplete) {
     await incrementProgressCount(clientId, -1);
   }
@@ -307,6 +308,14 @@ async function getEarliestRoutineCreatedAt(clientId: string): Promise<string | n
 
   if (dates.length === 0) return null;
   return dates.sort()[0];
+}
+
+async function ensureClientCycleStartedOnFirstProgress(clientId: string) {
+  const firestore = requireDb();
+  const ref = doc(firestore, 'clients', clientId);
+  const snap = await getDoc(ref);
+  if (!snap.exists() || (snap.data() as Client).cycleStartedAt) return;
+  await setDoc(ref, { cycleStartedAt: startOfTodayIso() }, { merge: true });
 }
 
 async function ensureClientCycleStarted(clientId: string) {
@@ -572,9 +581,16 @@ function buildDailyCompletion(
   cycleStartedAt: string | null,
   progressByDate: Record<string, boolean>
 ): boolean[] {
-  if (!cycleStartedAt) return Array(CYCLE_DAYS).fill(false);
+  const completedDates = Object.entries(progressByDate)
+    .filter(([, done]) => done)
+    .map(([dateKey]) => dateKey)
+    .sort();
 
-  const start = new Date(cycleStartedAt);
+  if (!cycleStartedAt && completedDates.length === 0) {
+    return Array(CYCLE_DAYS).fill(false);
+  }
+
+  const start = new Date(cycleStartedAt ?? `${completedDates[0]}T12:00:00`);
   start.setHours(0, 0, 0, 0);
 
   return Array.from({ length: CYCLE_DAYS }, (_, index) => {
@@ -582,6 +598,15 @@ function buildDailyCompletion(
     date.setDate(start.getDate() + index);
     return Boolean(progressByDate[formatDateKey(date)]);
   });
+}
+
+function resolveCycleDay(cycleStartedAt: string | null, progressByDate: Record<string, boolean>): number {
+  if (cycleStartedAt) {
+    return Math.min(daysSinceDate(cycleStartedAt) + 1, CYCLE_DAYS);
+  }
+  const completedDates = Object.keys(progressByDate).filter((k) => progressByDate[k]).sort();
+  if (completedDates.length === 0) return 1;
+  return Math.min(daysSinceDate(completedDates[0]) + 1, CYCLE_DAYS);
 }
 
 function aggregateCoachMetaFromPlans(
@@ -689,9 +714,7 @@ export function subscribeClientCoachOverview(
     onData({
       progressCount,
       cycleStartedAt,
-      cycleDay: cycleStartedAt
-        ? Math.min(daysSinceDate(cycleStartedAt) + 1, CYCLE_DAYS)
-        : 1,
+      cycleDay: resolveCycleDay(cycleStartedAt, progressByDate),
       activeRoutineDays,
       routineGoal: coachMeta?.routineGoal || aggregated.routineGoal || '',
       nutritionGoal: coachMeta?.nutritionGoal || aggregated.nutritionGoal || '',

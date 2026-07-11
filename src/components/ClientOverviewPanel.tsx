@@ -42,6 +42,9 @@ export function ClientOverviewPanel({ clientId, overview }: ClientOverviewPanelP
   return (
     <div className="client-overview">
       <div className="client-overview__stats">
+        <span className="client-overview__chip client-overview__chip--progress">
+          {overview.progressCount}/28 días completados
+        </span>
         <span className="client-overview__chip">
           {overview.activeRoutineDays}/7 días con rutina
         </span>
