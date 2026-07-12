@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { sanitizeStartUrl } from './manifest';
+import { sanitizeStartUrl } from '../api/manifest.ts';
 
 describe('sanitizeStartUrl', () => {
   it('acepta rutas de plan', () => {
