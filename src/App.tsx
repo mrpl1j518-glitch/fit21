@@ -68,6 +68,7 @@ function Home() {
             Abre el link personal que te envió tu coach (por WhatsApp) para ver tu plan.
           </p>
           <p className="home__hint">
+            En iPhone: ábrelo en Safari, luego Compartir → Añadir a pantalla de inicio.
             Después de abrirlo una vez, esta app recordará tu acceso.
           </p>
         </>

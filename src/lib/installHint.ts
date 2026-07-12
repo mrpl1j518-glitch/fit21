@@ -83,18 +83,18 @@ export function getInstallHintKind(): InstallHintKind {
 export const INSTALL_HINT_COPY: Record<Exclude<InstallHintKind, null>, { title: string; body: string }> = {
   'in-app': {
     title: '¿Quieres tener FIT21 como app?',
-    body: 'Abre este link en Google Chrome (Android) o Safari (iPhone) para instalarlo en tu pantalla de inicio.',
+    body: 'En Android ábrelo en Chrome. En iPhone ábrelo en Safari (Chrome en iPhone no puede instalar la app).',
   },
   android: {
     title: 'Instala FIT21 como app',
     body: 'Abre este link en Google Chrome. Menú ⋮ → “Abrir en Chrome” o “Instalar app”.',
   },
   'ios-other': {
-    title: 'Agrega FIT21 a tu inicio',
-    body: 'Abre este link en Safari. Desde WhatsApp: Compartir → “Abrir en Safari”.',
+    title: 'En iPhone usa Safari',
+    body: 'Chrome en iPhone no instala apps. Abre este link en Safari → Compartir (↑) → “Añadir a pantalla de inicio”. Desde WhatsApp: Compartir → “Abrir en Safari”.',
   },
   'ios-safari': {
     title: 'Agrega FIT21 a tu inicio',
-    body: 'Toca Compartir (↑) y elige “Añadir a pantalla de inicio” para tenerla como app.',
+    body: 'Toca Compartir (↑) y elige “Añadir a pantalla de inicio”. El icono debe abrir tu plan (no la pantalla genérica).',
   },
 };

@@ -3,35 +3,6 @@ import { buildClientPlanPath } from './clientSlug';
 const CLIENT_ID_KEY = 'fit21_last_client_id';
 const CLIENT_NAME_PREFIX = 'fit21_client_name_';
 
-const MANIFEST_BASE = {
-  name: 'FIT21 — Constancia que transforma',
-  short_name: 'FIT21',
-  description: 'Rutinas y plan de alimentación personalizado',
-  theme_color: '#3B1E78',
-  background_color: '#FAFAFA',
-  display: 'standalone' as const,
-  orientation: 'portrait' as const,
-  scope: '/',
-  // id estable: un solo instalable por origen/navegador (no duplicar por usuaria)
-  id: '/',
-  icons: [
-    {
-      src: '/fit21-logo.png',
-      sizes: '512x512',
-      type: 'image/png',
-      purpose: 'any',
-    },
-    {
-      src: '/fit21-logo.png',
-      sizes: '512x512',
-      type: 'image/png',
-      purpose: 'maskable',
-    },
-  ],
-};
-
-let lastManifestBlobUrl: string | null = null;
-
 export function getRememberedClientId(): string | null {
   try {
     return localStorage.getItem(CLIENT_ID_KEY);
@@ -67,8 +38,45 @@ export function isStandaloneDisplay(): boolean {
 }
 
 /**
- * Guarda la usuaria actual y actualiza el manifest para que
- * "Instalar app" abra su plan en lugar de la landing de coach.
+ * Apunta el <link rel="manifest"> a /api/manifest?start=...
+ * (HTTP real; blob: lo ignora iOS Safari al Agregar a Inicio).
+ */
+export function setManifestStartUrl(startPath: string) {
+  if (typeof document === 'undefined') return;
+
+  const path = startPath.startsWith('/') ? startPath : `/${startPath}`;
+  const href = `/api/manifest?start=${encodeURIComponent(path)}`;
+
+  let link = document.querySelector<HTMLLinkElement>('link[rel="manifest"]');
+  if (!link) {
+    link = document.createElement('link');
+    link.rel = 'manifest';
+    document.head.appendChild(link);
+  }
+  if (link.getAttribute('href') !== href) {
+    link.href = href;
+  }
+}
+
+/**
+ * Si la URL actual es un plan, fija el manifest cuanto antes
+ * (antes de que React monte), para el diálogo "Agregar a Inicio" de iOS.
+ * En otras rutas, apunta a un manifest HTTP sin forzar blob:.
+ */
+export function applyManifestForCurrentPath() {
+  if (typeof window === 'undefined') return;
+  const { pathname } = window.location;
+  if (pathname.startsWith('/plan/')) {
+    setManifestStartUrl(pathname);
+  } else if (!pathname.startsWith('/coach')) {
+    // Landing: sin start_url forzado a plan; API con start=/ es ok para coach/landing
+    setManifestStartUrl('/');
+  }
+}
+
+/**
+ * Guarda solo el pointer de clienta (no rutinas/progreso) y actualiza
+ * el manifest para que "Instalar / Agregar a Inicio" abra su plan.
  */
 export function rememberClientPlan(clientId: string, clientName?: string) {
   try {
@@ -82,30 +90,5 @@ export function rememberClientPlan(clientId: string, clientName?: string) {
     ? buildClientPlanPath(clientId, cachedName)
     : `/plan/${clientId}`;
 
-  applyClientManifest(startPath);
-}
-
-function applyClientManifest(startPath: string) {
-  if (typeof document === 'undefined') return;
-
-  const manifest = {
-    ...MANIFEST_BASE,
-    start_url: startPath,
-  };
-
-  const blob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-
-  let link = document.querySelector<HTMLLinkElement>('link[rel="manifest"]');
-  if (!link) {
-    link = document.createElement('link');
-    link.rel = 'manifest';
-    document.head.appendChild(link);
-  }
-
-  if (lastManifestBlobUrl) {
-    URL.revokeObjectURL(lastManifestBlobUrl);
-  }
-  lastManifestBlobUrl = url;
-  link.href = url;
+  setManifestStartUrl(startPath);
 }
