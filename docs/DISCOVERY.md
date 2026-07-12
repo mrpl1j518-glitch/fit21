@@ -187,7 +187,7 @@ Claudia (coach FIT21) necesitaba entregar rutinas y planes de alimentación pers
 
 ## 6. Próximos candidatos (backlog post-MVP)
 
-Prioridad sugerida para documentar en roadmap:
+Ver detalle en **[ROADMAP.md](./ROADMAP.md)**. Resumen:
 
 1. Política de privacidad pública (requisito Play Store)
 2. TWA / Google Play (empaquetar PWA)
@@ -195,3 +195,4 @@ Prioridad sugerida para documentar en roadmap:
 4. Onboarding coach: tour o checklist primera clienta
 5. Multi-coach / organizaciones (SaaS)
 6. Magic link o código para clientas (menos dependencia del link manual)
+7. **Historial de ciclos, métricas corporales y gráficos** (épica principal de producto)

@@ -8,6 +8,7 @@
 | [ARCHITECTURE.md](./ARCHITECTURE.md) | Arquitectura actual, stack, datos, despliegue y escalamiento |
 | [CODE_GUIDE.md](./CODE_GUIDE.md) | Cómo leer el código, flujos clave y pruebas |
 | [OPERATIONS.md](./OPERATIONS.md) | Operación, roles, soporte y go-to-market |
+| [ROADMAP.md](./ROADMAP.md) | Roadmap: historial, métricas y gráficos (planificado) |
 
 Documentación operativa existente:
 

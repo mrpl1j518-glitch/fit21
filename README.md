@@ -13,6 +13,7 @@ Rutinas y planes de alimentación personalizados, sin app store ni login para la
 | [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) | Arquitectura, stack, escalamiento y pruebas |
 | [docs/CODE_GUIDE.md](./docs/CODE_GUIDE.md) | Guía para entender y modificar el código |
 | [docs/OPERATIONS.md](./docs/OPERATIONS.md) | Operación, roles (María/coach/clienta), soporte y negocio |
+| [docs/ROADMAP.md](./docs/ROADMAP.md) | Roadmap: historial de ciclos, métricas y gráficos |
 | [SECURITY.md](./SECURITY.md) | Checklist de seguridad en producción |
 
 ## Stack
