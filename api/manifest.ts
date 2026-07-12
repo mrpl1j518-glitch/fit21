@@ -16,7 +16,6 @@ const MANIFEST_BASE = {
   display: 'standalone',
   orientation: 'portrait',
   scope: '/',
-  id: '/',
   icons: [
     {
       src: '/fit21-logo.png',
@@ -49,8 +48,11 @@ export default function handler(request: Request): Response {
   const url = new URL(request.url);
   const startUrl = sanitizeStartUrl(url.searchParams.get('start'));
 
+  // id debe coincidir con start_url: si id="/" iOS “pega” la app a la landing
+  // aunque la barra muestre /plan/… (Share → Agregar a Inicio muestra /).
   const body = JSON.stringify({
     ...MANIFEST_BASE,
+    id: startUrl,
     start_url: startUrl,
   });
 

@@ -95,6 +95,6 @@ export const INSTALL_HINT_COPY: Record<Exclude<InstallHintKind, null>, { title: 
   },
   'ios-safari': {
     title: 'Agrega FIT21 a tu inicio',
-    body: 'Toca Compartir (↑) y elige “Añadir a pantalla de inicio”. El icono debe abrir tu plan (no la pantalla genérica).',
+    body: 'Toca Compartir (↑) → “Añadir a pantalla de inicio”. En esa pantalla la URL debe incluir /plan/… Si solo dice fit21-amber.vercel.app/, cancela, recarga esta página y vuelve a intentar.',
   },
 };

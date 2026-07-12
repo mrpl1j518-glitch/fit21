@@ -4,6 +4,21 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/png" href="/fit21-logo.png" />
     <link rel="apple-touch-icon" href="/fit21-logo.png" />
+    <!--
+      iOS “Agregar a Inicio” + “Abrir como app web” usa start_url del manifest,
+      NO la URL de la barra. Debe existir ANTES de que Safari abra el sheet.
+      No usar /manifest.webmanifest (VitePWA forzaba start_url=/ o lo omitía → iOS cae en /).
+    -->
+    <script>
+      (function () {
+        var path = location.pathname || '/';
+        var start = path.indexOf('/plan/') === 0 ? path : '/';
+        var link = document.createElement('link');
+        link.rel = 'manifest';
+        link.href = '/api/manifest?start=' + encodeURIComponent(start);
+        document.head.appendChild(link);
+      })();
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&display=swap" rel="stylesheet" />

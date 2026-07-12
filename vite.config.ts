@@ -2,8 +2,6 @@ import type { Plugin } from 'vite';
 import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
-import { readFileSync, writeFileSync, existsSync } from 'node:fs';
-import { resolve } from 'node:path';
 import { sanitizeStartUrl } from './api/manifest.ts';
 
 /** En local (sin Vercel), sirve el mismo contrato que /api/manifest. */
@@ -29,7 +27,8 @@ function devManifestApi(): Plugin {
       display: 'standalone',
       orientation: 'portrait',
       scope: '/',
-      id: '/',
+      // id = start_url para que iOS no “pegue” la app a la raíz
+      id: startUrl,
       start_url: startUrl,
       icons: [
         { src: '/fit21-logo.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
@@ -52,24 +51,20 @@ function devManifestApi(): Plugin {
 }
 
 /**
- * VitePWA fuerza start_url al base ("/"). Lo quitamos del artefacto estático
- * para que iOS no abra siempre la landing; /api/manifest aporta start_url por plan.
+ * VitePWA a veces reinyecta <link rel="manifest" href="/manifest.webmanifest">.
+ * Eso hace que iOS “Agregar a Inicio” use start_url=/ (o vacío → /) y ignore /plan/….
+ * Dejamos solo el link a /api/manifest del script inline en index.html.
  */
-function stripStaticManifestStartUrl(): Plugin {
-  const strip = () => {
-    const file = resolve('dist/manifest.webmanifest');
-    if (!existsSync(file)) return;
-    const manifest = JSON.parse(readFileSync(file, 'utf8')) as Record<string, unknown>;
-    if (!('start_url' in manifest)) return;
-    delete manifest.start_url;
-    writeFileSync(file, JSON.stringify(manifest));
-  };
-
+function preferApiManifestLink(): Plugin {
   return {
-    name: 'fit21-strip-manifest-start-url',
+    name: 'fit21-prefer-api-manifest-link',
     enforce: 'post',
-    writeBundle: strip,
-    closeBundle: strip,
+    transformIndexHtml(html) {
+      return html.replace(
+        /<link[^>]*rel="manifest"[^>]*href="\/manifest\.webmanifest"[^>]*>/gi,
+        ''
+      );
+    },
   };
 }
 
@@ -80,39 +75,14 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['fit21-logo.png', 'favicon.svg'],
-      // El plugin inyecta start_url:"/" aunque no lo pongamos; stripStaticManifestStartUrl lo quita.
-      // En runtime, JS apunta a /api/manifest?start=/plan/...
-      manifest: {
-        name: 'FIT21 — Constancia que transforma',
-        short_name: 'FIT21',
-        description: 'Rutinas y plan de alimentación personalizado',
-        theme_color: '#3B1E78',
-        background_color: '#FAFAFA',
-        display: 'standalone',
-        orientation: 'portrait',
-        scope: '/',
-        id: '/',
-        icons: [
-          {
-            src: '/fit21-logo.png',
-            sizes: '512x512',
-            type: 'image/png',
-            purpose: 'any',
-          },
-          {
-            src: '/fit21-logo.png',
-            sizes: '512x512',
-            type: 'image/png',
-            purpose: 'maskable',
-          },
-        ],
-      },
+      // Sin manifest estático: iOS debe leer solo /api/manifest?start=...
+      manifest: false,
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         navigateFallbackDenylist: [/^\/api\//],
       },
     }),
-    stripStaticManifestStartUrl(),
+    preferApiManifestLink(),
   ],
   test: {
     environment: 'node',
