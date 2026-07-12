@@ -306,6 +306,7 @@ export function CoachDashboard() {
             const lastEdit = latestPlanEdit(client.planMeta);
             const inactive =
               overview &&
+              overview.cycleStartedAt &&
               overview.progressCount === 0 &&
               overview.cycleDay > 7;
 
@@ -351,6 +352,9 @@ export function CoachDashboard() {
                             ? 'Plan alimenticio asignado'
                             : 'Sin rutina'}
                       </span>
+                      {overview && !overview.cycleStartedAt && (
+                        <span className="status-badge status-badge--warn">Ciclo no iniciado</span>
+                      )}
                       {inactive && (
                         <span className="status-badge status-badge--warn">Sin avance aún</span>
                       )}

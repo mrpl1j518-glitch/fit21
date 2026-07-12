@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'react';
 import { CoachProgressChart } from './CoachProgressChart';
-import { updateClientCoachMeta } from '../lib/firestore';
+import {
+  restartClientCycle,
+  startClientCycle,
+  updateClientCoachMeta,
+} from '../lib/firestore';
 import type { ClientCoachOverview } from '../types';
 import './ClientOverviewPanel.css';
 
@@ -15,6 +19,7 @@ export function ClientOverviewPanel({ clientId, overview }: ClientOverviewPanelP
   const [nutritionGoal, setNutritionGoal] = useState('');
   const [calories, setCalories] = useState('');
   const [saving, setSaving] = useState(false);
+  const [cycleBusy, setCycleBusy] = useState(false);
 
   useEffect(() => {
     if (!overview || editing) return;
@@ -24,6 +29,8 @@ export function ClientOverviewPanel({ clientId, overview }: ClientOverviewPanelP
   }, [overview, editing]);
 
   if (!overview) return null;
+
+  const cycleStarted = Boolean(overview.cycleStartedAt);
 
   const handleSaveMeta = async () => {
     setSaving(true);
@@ -39,12 +46,40 @@ export function ClientOverviewPanel({ clientId, overview }: ClientOverviewPanelP
     }
   };
 
+  const handleStartCycle = async () => {
+    setCycleBusy(true);
+    try {
+      await startClientCycle(clientId);
+    } finally {
+      setCycleBusy(false);
+    }
+  };
+
+  const handleRestartCycle = async () => {
+    const ok = window.confirm(
+      '¿Reiniciar el ciclo desde hoy? Se borrará el avance marcado (días completados) y el día 1 será hoy.'
+    );
+    if (!ok) return;
+    setCycleBusy(true);
+    try {
+      await restartClientCycle(clientId);
+    } finally {
+      setCycleBusy(false);
+    }
+  };
+
   return (
     <div className="client-overview">
       <div className="client-overview__stats">
-        <span className="client-overview__chip client-overview__chip--progress">
-          {overview.progressCount}/28 días completados
-        </span>
+        {cycleStarted ? (
+          <span className="client-overview__chip client-overview__chip--progress">
+            {overview.progressCount}/28 días completados
+          </span>
+        ) : (
+          <span className="client-overview__chip client-overview__chip--warn">
+            Ciclo no iniciado
+          </span>
+        )}
         <span className="client-overview__chip">
           {overview.activeRoutineDays}/7 días con rutina
         </span>
@@ -52,6 +87,28 @@ export function ClientOverviewPanel({ clientId, overview }: ClientOverviewPanelP
           <span className="client-overview__chip client-overview__chip--cal">
             {overview.calories} kcal
           </span>
+        )}
+      </div>
+
+      <div className="client-overview__cycle-actions">
+        {!cycleStarted ? (
+          <button
+            type="button"
+            className="btn btn--small btn--primary"
+            onClick={handleStartCycle}
+            disabled={cycleBusy}
+          >
+            {cycleBusy ? 'Iniciando...' : 'Iniciar ciclo'}
+          </button>
+        ) : (
+          <button
+            type="button"
+            className="btn btn--small btn--ghost"
+            onClick={handleRestartCycle}
+            disabled={cycleBusy}
+          >
+            {cycleBusy ? 'Reiniciando...' : 'Reiniciar ciclo'}
+          </button>
         )}
       </div>
 
@@ -118,11 +175,18 @@ export function ClientOverviewPanel({ clientId, overview }: ClientOverviewPanelP
         </div>
       )}
 
-      <CoachProgressChart
-        dailyCompletion={overview.dailyCompletion}
-        progressCount={overview.progressCount}
-        cycleDay={overview.cycleDay}
-      />
+      {cycleStarted ? (
+        <CoachProgressChart
+          dailyCompletion={overview.dailyCompletion}
+          progressCount={overview.progressCount}
+          cycleDay={overview.cycleDay}
+        />
+      ) : (
+        <p className="client-overview__preview-hint">
+          La alumna ya puede ver su plan. El contador de 28 días empieza cuando pulses
+          “Iniciar ciclo”.
+        </p>
+      )}
     </div>
   );
 }

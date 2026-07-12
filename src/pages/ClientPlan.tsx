@@ -16,7 +16,6 @@ import {
   subscribeWeekProgress,
   subscribeProgressCount,
   setDayComplete,
-  ensureActiveCycle,
 } from '../lib/firestore';
 import {
   DAY_NAMES,
@@ -84,13 +83,6 @@ export function ClientPlan() {
     if (!clientId) return;
 
     rememberClientPlan(clientId);
-    ensureActiveCycle(clientId)
-      .then((client) => {
-        if (client?.cycleStartedAt) setCycleStartedAt(client.cycleStartedAt);
-      })
-      .catch(() => {
-        // el snapshot del cliente cubre el estado si falla
-      });
 
     const cached = getCachedClientName(clientId);
     if (cached) {
@@ -174,7 +166,7 @@ export function ClientPlan() {
   }, [clientId]);
 
   useEffect(() => {
-    if (!clientId || progressCount === 0) return;
+    if (!clientId || !cycleStartedAt || progressCount === 0) return;
     if (progressCount % MILESTONE_DAYS !== 0) return;
     const key = `fit21_celebrated_${clientId}_${progressCount}`;
     try {
@@ -184,10 +176,10 @@ export function ClientPlan() {
       return;
     }
     setCelebration(progressCount);
-  }, [progressCount, clientId]);
+  }, [progressCount, clientId, cycleStartedAt]);
 
   const handleToggleComplete = async () => {
-    if (!clientId || toggling) return;
+    if (!clientId || !cycleStartedAt || toggling) return;
     setToggling(true);
     try {
       await setDayComplete(
@@ -216,13 +208,14 @@ export function ClientPlan() {
 
   const hasNutrition = nutrition && nutrition.meals.length > 0;
   const exercises = routine?.exercises ?? [];
+  const cycleActive = Boolean(cycleStartedAt);
   const cycleDay = cycleStartedAt
     ? Math.min(daysSinceDate(cycleStartedAt) + 1, CYCLE_DAYS)
-    : 1;
+    : 0;
 
   return (
     <div className="client-plan">
-      {celebration !== null && (
+      {celebration !== null && cycleActive && (
         <WeekCelebration milestone={celebration} onDone={() => setCelebration(null)} />
       )}
       <header className="client-header-card card">
@@ -238,9 +231,15 @@ export function ClientPlan() {
               )}
             </p>
             <p className="client-date">{headerDateLabel}</p>
-            <p className="client-cycle">
-              Día <strong>{cycleDay}</strong> de tu ciclo de {CYCLE_DAYS}
-            </p>
+            {cycleActive ? (
+              <p className="client-cycle">
+                Día <strong>{cycleDay}</strong> de tu ciclo de {CYCLE_DAYS}
+              </p>
+            ) : (
+              <p className="client-cycle client-cycle--preview">
+                Tu plan está listo. El ciclo de {CYCLE_DAYS} días empieza cuando tu coach lo active.
+              </p>
+            )}
           </div>
           <NotificationBell clientId={clientId} />
         </div>
@@ -265,24 +264,33 @@ export function ClientPlan() {
         </div>
       </nav>
 
-      <section className="progress-section card">
-        <p className="section-title">Tu avance</p>
-        <DayPips count={progressCount} />
-        <WeekPips progress={weekProgress} />
-        <label className={`complete-check ${dayComplete ? 'complete-check--done' : ''}`}>
-          <input
-            type="checkbox"
-            checked={dayComplete}
-            onChange={handleToggleComplete}
-            disabled={toggling}
-          />
-          <span className="complete-check__text">
-            {isToday
-              ? '¡Hoy completé mi rutina!'
-              : `Rutina del ${DAY_NAMES[selectedDay].toLowerCase()} — completada`}
-          </span>
-        </label>
-      </section>
+      {cycleActive ? (
+        <section className="progress-section card">
+          <p className="section-title">Tu avance</p>
+          <DayPips count={progressCount} />
+          <WeekPips progress={weekProgress} />
+          <label className={`complete-check ${dayComplete ? 'complete-check--done' : ''}`}>
+            <input
+              type="checkbox"
+              checked={dayComplete}
+              onChange={handleToggleComplete}
+              disabled={toggling}
+            />
+            <span className="complete-check__text">
+              {isToday
+                ? '¡Hoy completé mi rutina!'
+                : `Rutina del ${DAY_NAMES[selectedDay].toLowerCase()} — completada`}
+            </span>
+          </label>
+        </section>
+      ) : (
+        <section className="progress-section progress-section--preview card">
+          <p className="section-title">Tu avance</p>
+          <p className="progress-preview-note">
+            Podrás marcar tus días completados cuando tu coach inicie el ciclo.
+          </p>
+        </section>
+      )}
 
       <section className="routine-section card">
         <div className="section-head">

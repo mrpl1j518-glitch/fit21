@@ -69,7 +69,7 @@ export interface Client {
   createdAt?: string;
   /** Parte legible del link personal (ej. "wendy"). */
   slug?: string;
-  /** Inicio del ciclo actual de 28 días (desde la primera rutina asignada). */
+  /** Inicio del ciclo de 28 días (lo fija el coach con “Iniciar ciclo”). */
   cycleStartedAt?: string;
   /** Meta resumida visible en el dashboard del coach (editable). */
   coachMeta?: ClientCoachMeta;

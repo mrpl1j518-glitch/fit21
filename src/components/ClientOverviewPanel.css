@@ -31,6 +31,22 @@
   color: #0d7a7a;
 }
 
+.client-overview__chip--warn {
+  background: rgba(180, 100, 20, 0.12);
+  color: #9a4e0a;
+}
+
+.client-overview__cycle-actions {
+  margin-bottom: var(--space-sm);
+}
+
+.client-overview__preview-hint {
+  margin: var(--space-sm) 0 0;
+  font-size: var(--font-caption);
+  color: var(--color-text-muted);
+  line-height: 1.4;
+}
+
 .client-overview__meta p {
   margin: 0 0 0.25rem;
   font-size: var(--font-caption);

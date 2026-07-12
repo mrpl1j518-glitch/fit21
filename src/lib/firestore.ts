@@ -119,9 +119,6 @@ export async function saveRoutine(
     updatedAt: now,
   };
   await setDoc(ref, payload);
-  if (routine.exercises.length > 0) {
-    await ensureClientCycleStarted(clientId);
-  }
   await setDoc(doc(firestore, 'routineHistory', nanoid()), {
     clientId,
     dayIndex,
@@ -247,6 +244,11 @@ export async function setDayComplete(
   previousComplete: boolean
 ) {
   const firestore = requireDb();
+  const clientSnap = await getDoc(doc(firestore, 'clients', clientId));
+  if (!clientSnap.exists() || !(clientSnap.data() as Client).cycleStartedAt) {
+    throw new Error('El ciclo aún no ha sido iniciado por el coach');
+  }
+
   const docId = `${clientId}_${weekStart}`;
   await setDoc(
     doc(firestore, 'weekProgress', docId),
@@ -256,7 +258,6 @@ export async function setDayComplete(
 
   if (complete && !previousComplete) {
     await incrementProgressCount(clientId, 1);
-    await ensureClientCycleStartedOnFirstProgress(clientId);
   } else if (!complete && previousComplete) {
     await incrementProgressCount(clientId, -1);
   }
@@ -293,42 +294,18 @@ export function subscribeProgressCount(
   });
 }
 
-async function getEarliestRoutineCreatedAt(clientId: string): Promise<string | null> {
-  const firestore = requireDb();
-  const dates: string[] = [];
-
-  for (let i = 0; i < 7; i++) {
-    const snap = await getDoc(doc(firestore, 'routines', `${clientId}_${i}`));
-    if (!snap.exists()) continue;
-    const routine = snap.data() as Routine;
-    if (routine.createdAt && routine.exercises.length > 0) {
-      dates.push(routine.createdAt);
-    }
-  }
-
-  if (dates.length === 0) return null;
-  return dates.sort()[0];
-}
-
-async function ensureClientCycleStartedOnFirstProgress(clientId: string) {
+/** El coach inicia el ciclo de 28 días (día 1 = hoy). No-op si ya está iniciado. */
+export async function startClientCycle(clientId: string) {
   const firestore = requireDb();
   const ref = doc(firestore, 'clients', clientId);
   const snap = await getDoc(ref);
-  if (!snap.exists() || (snap.data() as Client).cycleStartedAt) return;
+  if (!snap.exists()) throw new Error('Clienta no encontrada');
+  if ((snap.data() as Client).cycleStartedAt) return;
   await setDoc(ref, { cycleStartedAt: startOfTodayIso() }, { merge: true });
 }
 
-async function ensureClientCycleStarted(clientId: string) {
-  const firestore = requireDb();
-  const ref = doc(firestore, 'clients', clientId);
-  const snap = await getDoc(ref);
-  if (!snap.exists()) return;
-  const client = snap.data() as Client;
-  if (client.cycleStartedAt) return;
-  await setDoc(ref, { cycleStartedAt: startOfTodayIso() }, { merge: true });
-}
-
-async function resetClientCycle(clientId: string) {
+/** Reinicia avance y fija día 1 = hoy. Solo coach. */
+export async function restartClientCycle(clientId: string) {
   const firestore = requireDb();
   await setDoc(doc(firestore, 'progressCount', clientId), { count: 0 });
 
@@ -346,33 +323,29 @@ async function resetClientCycle(clientId: string) {
   );
 }
 
-/** Reinicia el ciclo si ya pasaron 28 días. Solo escribe si hay sesión coach. */
+/**
+ * Si el ciclo ya lleva 28+ días, lo reinicia automáticamente.
+ * No inicia ciclos nuevos: eso lo hace el coach con startClientCycle.
+ */
 export async function ensureActiveCycle(clientId: string): Promise<Client | null> {
   const firestore = requireDb();
   const ref = doc(firestore, 'clients', clientId);
   const snap = await getDoc(ref);
   if (!snap.exists()) return null;
 
-  let client = snap.data() as Client;
-  let cycleStartedAt = client.cycleStartedAt;
+  const client = snap.data() as Client;
+  const cycleStartedAt = client.cycleStartedAt;
 
-  // Clienta anónima: solo lectura (rules ya no permiten update de cycleStartedAt)
   if (!isCoachSession()) {
     return client;
   }
 
   if (!cycleStartedAt) {
-    cycleStartedAt = (await getEarliestRoutineCreatedAt(clientId)) ?? undefined;
-    if (cycleStartedAt) {
-      await setDoc(ref, { cycleStartedAt }, { merge: true });
-      client = { ...client, cycleStartedAt };
-    } else {
-      return client;
-    }
+    return client;
   }
 
   if (daysSinceDate(cycleStartedAt) >= CYCLE_DAYS) {
-    await resetClientCycle(clientId);
+    await restartClientCycle(clientId);
     const refreshed = await getDoc(ref);
     return refreshed.exists() ? (refreshed.data() as Client) : null;
   }
@@ -600,13 +573,9 @@ function buildDailyCompletion(
   });
 }
 
-function resolveCycleDay(cycleStartedAt: string | null, progressByDate: Record<string, boolean>): number {
-  if (cycleStartedAt) {
-    return Math.min(daysSinceDate(cycleStartedAt) + 1, CYCLE_DAYS);
-  }
-  const completedDates = Object.keys(progressByDate).filter((k) => progressByDate[k]).sort();
-  if (completedDates.length === 0) return 1;
-  return Math.min(daysSinceDate(completedDates[0]) + 1, CYCLE_DAYS);
+function resolveCycleDay(cycleStartedAt: string | null): number {
+  if (!cycleStartedAt) return 0;
+  return Math.min(daysSinceDate(cycleStartedAt) + 1, CYCLE_DAYS);
 }
 
 function aggregateCoachMetaFromPlans(
@@ -714,7 +683,7 @@ export function subscribeClientCoachOverview(
     onData({
       progressCount,
       cycleStartedAt,
-      cycleDay: resolveCycleDay(cycleStartedAt, progressByDate),
+      cycleDay: resolveCycleDay(cycleStartedAt),
       activeRoutineDays,
       routineGoal: coachMeta?.routineGoal || aggregated.routineGoal || '',
       nutritionGoal: coachMeta?.nutritionGoal || aggregated.nutritionGoal || '',

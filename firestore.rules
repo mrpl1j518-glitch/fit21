@@ -53,16 +53,11 @@ service cloud.firestore {
     }
 
     // Perfiles: get público (link personal); list solo coach.
+    // cycleStartedAt solo lo escribe el coach (Iniciar / Reiniciar ciclo).
     match /clients/{clientId} {
       allow get: if true;
       allow list: if isCoach();
-      allow create, delete: if isCoach();
-      // Clienta puede fijar cycleStartedAt una sola vez al marcar su primer día
-      allow update: if isCoach() || (
-        !('cycleStartedAt' in resource.data)
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['cycleStartedAt'])
-        && request.resource.data.cycleStartedAt is string
-      );
+      allow create, update, delete: if isCoach();
     }
 
     match /routines/{docId} {
