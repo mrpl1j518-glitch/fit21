@@ -432,6 +432,17 @@ select:focus {
   margin: 0;
 }
 
+.home__hint--steps {
+  text-align: left;
+  padding-left: 1.25rem;
+  line-height: 1.45;
+  max-width: 320px;
+}
+
+.home__hint--steps li + li {
+  margin-top: 0.4rem;
+}
+
 .home__continue {
   max-width: 320px;
   text-decoration: none;

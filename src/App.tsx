@@ -65,12 +65,15 @@ function Home() {
       {standaloneWithoutPlan ? (
         <>
           <p className="home__text">
-            Abre el link personal que te envió tu coach (por WhatsApp) para ver tu plan.
+            Este icono no tiene tu plan. Hay que instalarlo desde tu link personal.
           </p>
-          <p className="home__hint">
-            En iPhone: ábrelo en Safari, luego Compartir → Añadir a pantalla de inicio.
-            Después de abrirlo una vez, esta app recordará tu acceso.
-          </p>
+          <ol className="home__hint home__hint--steps">
+            <li>Borra este icono FIT21 de la pantalla de inicio.</li>
+            <li>Abre en <strong>Safari</strong> el link de WhatsApp (debe decir /plan/…).</li>
+            <li>Espera a ver tu rutina.</li>
+            <li>Compartir → Añadir a pantalla de inicio.</li>
+            <li>Abre el icono nuevo.</li>
+          </ol>
         </>
       ) : (
         <p className="home__text">

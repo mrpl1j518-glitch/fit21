@@ -61,17 +61,28 @@ export function setManifestStartUrl(startPath: string) {
 /**
  * Si la URL actual es un plan, fija el manifest cuanto antes
  * (antes de que React monte), para el diálogo "Agregar a Inicio" de iOS.
- * En otras rutas, apunta a un manifest HTTP sin forzar blob:.
+ *
+ * En la landing: si ya hay clienta recordada, NO resetear start_url a "/"
+ * (eso hacía que el icono de iPhone abriera la pantalla vacía de instrucciones).
+ * Sin clienta recordada, no forzamos "/" — iOS usará la URL de la página actual.
  */
 export function applyManifestForCurrentPath() {
   if (typeof window === 'undefined') return;
   const { pathname } = window.location;
   if (pathname.startsWith('/plan/')) {
     setManifestStartUrl(pathname);
-  } else if (!pathname.startsWith('/coach')) {
-    // Landing: sin start_url forzado a plan; API con start=/ es ok para coach/landing
-    setManifestStartUrl('/');
+    return;
   }
+  if (pathname.startsWith('/coach')) return;
+
+  const rememberedId = getRememberedClientId();
+  if (rememberedId) {
+    const name = getCachedClientName(rememberedId);
+    setManifestStartUrl(
+      name ? buildClientPlanPath(rememberedId, name) : `/plan/${rememberedId}`
+    );
+  }
+  // Sin plan recordado: no llamar setManifestStartUrl('/') — evita iconos rotos en iOS
 }
 
 /**
