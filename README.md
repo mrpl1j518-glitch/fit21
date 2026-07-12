@@ -4,6 +4,17 @@ App web para entrenamiento personal de la marca **FIT21** — *Constancia que tr
 
 Rutinas y planes de alimentación personalizados, sin app store ni login para las clientas.
 
+## Documentación
+
+| Documento | Descripción |
+|-----------|-------------|
+| [docs/README.md](./docs/README.md) | Índice de documentación |
+| [docs/DISCOVERY.md](./docs/DISCOVERY.md) | Post-mortem: épicas, historias, fixes y lecciones |
+| [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) | Arquitectura, stack, escalamiento y pruebas |
+| [docs/CODE_GUIDE.md](./docs/CODE_GUIDE.md) | Guía para entender y modificar el código |
+| [docs/OPERATIONS.md](./docs/OPERATIONS.md) | Operación, roles (María/coach/clienta), soporte y negocio |
+| [SECURITY.md](./SECURITY.md) | Checklist de seguridad en producción |
+
 ## Stack
 
 - React + Vite + TypeScript
