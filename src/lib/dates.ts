@@ -95,3 +95,30 @@ export function startOfTodayIso(from = new Date()): string {
   return date.toISOString();
 }
 
+/**
+ * true si dateKey (YYYY-MM-DD) cae dentro de los CYCLE_DAYS del ciclo
+ * (día 1 = cycleStartedAt … día 28 inclusive).
+ */
+export function isDateWithinCycle(
+  cycleStartedAt: string,
+  dateKey: string,
+  cycleDays: number
+): boolean {
+  const start = new Date(cycleStartedAt);
+  start.setHours(0, 0, 0, 0);
+  const end = new Date(start);
+  end.setDate(start.getDate() + cycleDays - 1);
+  const day = new Date(`${dateKey}T12:00:00`);
+  day.setHours(0, 0, 0, 0);
+  return day.getTime() >= start.getTime() && day.getTime() <= end.getTime();
+}
+
+/** true cuando ya pasó el día N de calendario del ciclo (coach debe reiniciar). */
+export function isCyclePeriodEnded(
+  cycleStartedAt: string,
+  cycleDays = 28,
+  from = new Date()
+): boolean {
+  return daysSinceDate(cycleStartedAt, from) >= cycleDays;
+}
+

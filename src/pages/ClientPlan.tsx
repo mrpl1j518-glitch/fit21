@@ -8,6 +8,7 @@ import { InstallHint } from '../components/InstallHint';
 import { WeekCelebration } from '../components/WeekCelebration';
 import { NotificationBell } from '../components/NotificationBell';
 import { FeedbackForm } from '../components/FeedbackForm';
+import { ClientHelpSheet } from '../components/ClientHelpSheet';
 import {
   getClient,
   subscribeClient,
@@ -22,7 +23,7 @@ import {
   DAY_SHORT,
   formatRest,
   CYCLE_DAYS,
-  MILESTONE_DAYS,
+  CELEBRATION_MILESTONES,
   type Routine,
   type NutritionPlan,
   type Exercise,
@@ -34,6 +35,8 @@ import {
   dateKeyForDayIndex,
   dateForDayIndex,
   daysSinceDate,
+  isCyclePeriodEnded,
+  isDateWithinCycle,
 } from '../lib/dates';
 import {
   rememberClientPlan,
@@ -71,6 +74,7 @@ export function ClientPlan() {
   const [cycleStartedAt, setCycleStartedAt] = useState<string | undefined>();
   const [toggling, setToggling] = useState(false);
   const [celebration, setCelebration] = useState<number | null>(null);
+  const [helpOpen, setHelpOpen] = useState(false);
 
   const weekStart = getWeekStartKey();
   const selectedDateKey = dateKeyForDayIndex(selectedDay);
@@ -167,7 +171,7 @@ export function ClientPlan() {
 
   useEffect(() => {
     if (!clientId || !cycleStartedAt || progressCount === 0) return;
-    if (progressCount % MILESTONE_DAYS !== 0) return;
+    if (!(CELEBRATION_MILESTONES as readonly number[]).includes(progressCount)) return;
     const key = `fit21_celebrated_${clientId}_${progressCount}`;
     try {
       if (localStorage.getItem(key)) return;
@@ -212,6 +216,12 @@ export function ClientPlan() {
   const cycleDay = cycleStartedAt
     ? Math.min(daysSinceDate(cycleStartedAt) + 1, CYCLE_DAYS)
     : 0;
+  const cycleFinished =
+    cycleActive &&
+    (progressCount >= CYCLE_DAYS ||
+      (cycleStartedAt ? isCyclePeriodEnded(cycleStartedAt, CYCLE_DAYS) : false));
+  const selectedCountsTowardCycle =
+    cycleStartedAt && isDateWithinCycle(cycleStartedAt, selectedDateKey, CYCLE_DAYS);
 
   return (
     <div className="client-plan">
@@ -241,11 +251,33 @@ export function ClientPlan() {
               </p>
             )}
           </div>
-          <NotificationBell clientId={clientId} />
+          <div className="client-header__actions">
+            <button
+              type="button"
+              className="client-help-btn"
+              onClick={() => setHelpOpen(true)}
+              aria-label="Ayuda: cómo usar tu plan"
+              title="Ayuda"
+            >
+              ?
+            </button>
+            <NotificationBell clientId={clientId} />
+          </div>
         </div>
       </header>
 
+      <ClientHelpSheet open={helpOpen} onClose={() => setHelpOpen(false)} />
+
       <InstallHint />
+
+      {cycleFinished && (
+        <aside className="cycle-done-banner card" role="status">
+          <p>
+            Completaste tu ciclo de {CYCLE_DAYS} días. Puedes seguir entrenando; los días fuera
+            del ciclo no suman al contador. Tu coach reiniciará el siguiente cuando corresponda.
+          </p>
+        </aside>
+      )}
 
       <nav className="client-day-nav" aria-label="Día de la semana">
         <div className="day-tabs client-day-tabs" role="tablist">
@@ -282,6 +314,11 @@ export function ClientPlan() {
                 : `Rutina del ${DAY_NAMES[selectedDay].toLowerCase()} — completada`}
             </span>
           </label>
+          {cycleFinished && !selectedCountsTowardCycle && (
+            <p className="progress-extra-note">
+              Este día ya está fuera del ciclo: puedes marcarlo, pero no suma al contador de 28.
+            </p>
+          )}
         </section>
       ) : (
         <section className="progress-section progress-section--preview card">

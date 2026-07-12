@@ -8,17 +8,25 @@ interface WeekCelebrationProps {
 
 function celebrationTitle(milestone: number): string {
   switch (milestone) {
+    case 1:
+      return '¡Primer día completado!';
     case 7:
-      return 'Alcanzaste 7 días completados';
+      return '¡Alcanzaste 7 días completados!';
     case 14:
-      return 'Lograste 14 días completos';
+      return '¡Lograste 14 días completos!';
     case 21:
-      return 'Lograste 21 días del Plan';
+      return '¡Lograste 21 días del plan!';
     case 28:
-      return 'Felicidades completaste 4 semanas!';
+      return '¡Felicidades! Completaste tu ciclo de 4 semanas';
     default:
       return `¡${milestone} días de avance!`;
   }
+}
+
+function celebrationEmoji(milestone: number): string {
+  if (milestone >= 28) return '🏆';
+  if (milestone === 1) return '🌱';
+  return '✨';
 }
 
 export function WeekCelebration({ milestone, onDone }: WeekCelebrationProps) {
@@ -31,7 +39,7 @@ export function WeekCelebration({ milestone, onDone }: WeekCelebrationProps) {
     <div className="week-celebration" role="status" aria-live="polite">
       <div className="week-celebration__card">
         <span className="week-celebration__emoji" aria-hidden>
-          {milestone >= 28 ? '🏆' : '✨'}
+          {celebrationEmoji(milestone)}
         </span>
         <p className="week-celebration__title">{celebrationTitle(milestone)}</p>
       </div>

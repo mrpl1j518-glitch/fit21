@@ -6,6 +6,8 @@ import {
   formatDateKey,
   getDayIndex,
   getWeekStartKey,
+  isCyclePeriodEnded,
+  isDateWithinCycle,
 } from './dates';
 
 /** Lunes 7 de julio de 2025 (hora local del entorno de test). */
@@ -42,5 +44,22 @@ describe('daysSinceDate', () => {
   it('cuenta días calendario entre fechas locales', () => {
     expect(daysSinceDate(new Date(2025, 6, 1), new Date(2025, 6, 7, 12))).toBe(6);
     expect(daysSinceDate(new Date(2025, 6, 7), new Date(2025, 6, 7, 18))).toBe(0);
+  });
+});
+
+describe('isDateWithinCycle', () => {
+  it('incluye día 1 y día 28, excluye día 29', () => {
+    const start = '2025-07-01T06:00:00.000Z';
+    expect(isDateWithinCycle(start, '2025-07-01', 28)).toBe(true);
+    expect(isDateWithinCycle(start, '2025-07-28', 28)).toBe(true);
+    expect(isDateWithinCycle(start, '2025-07-29', 28)).toBe(false);
+  });
+});
+
+describe('isCyclePeriodEnded', () => {
+  it('es true desde el día 29 de calendario', () => {
+    const start = new Date(2025, 6, 1);
+    expect(isCyclePeriodEnded(start.toISOString(), 28, new Date(2025, 6, 28, 12))).toBe(false);
+    expect(isCyclePeriodEnded(start.toISOString(), 28, new Date(2025, 6, 29, 12))).toBe(true);
   });
 });

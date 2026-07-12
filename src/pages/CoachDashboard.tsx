@@ -12,12 +12,12 @@ import {
   subscribeClientPlanMeta,
   subscribeClientCoachOverview,
   subscribeFeedback,
-  ensureActiveCycle,
   type ClientPlanMeta,
 } from '../lib/firestore';
 import { ClientOverviewPanel } from '../components/ClientOverviewPanel';
-import { initials, type Client, type ClientFeedback, type ClientCoachOverview } from '../types';
+import { initials, CYCLE_DAYS, type Client, type ClientFeedback, type ClientCoachOverview } from '../types';
 import { getClientPlanUrl } from '../lib/clientSlug';
+import { isCyclePeriodEnded } from '../lib/dates';
 import './CoachDashboard.css';
 
 interface ClientRow extends Client {
@@ -65,25 +65,6 @@ export function CoachDashboard() {
   useEffect(() => {
     return subscribeClients(setClients);
   }, []);
-
-  // Reinicio de ciclo 28 días: solo coach puede escribir cycleStartedAt / progress reset
-  useEffect(() => {
-    if (clientIds.length === 0) return;
-    let cancelled = false;
-    (async () => {
-      for (const id of clientIds) {
-        if (cancelled) return;
-        try {
-          await ensureActiveCycle(id);
-        } catch {
-          // permission / red: no bloquear el panel
-        }
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [clientIds.join(',')]);
 
   useEffect(() => {
     return subscribeFeedback(setFeedback);
@@ -309,6 +290,10 @@ export function CoachDashboard() {
               overview.cycleStartedAt &&
               overview.progressCount === 0 &&
               overview.cycleDay > 7;
+            const cycleCompleted =
+              overview?.cycleStartedAt &&
+              (overview.progressCount >= CYCLE_DAYS ||
+                isCyclePeriodEnded(overview.cycleStartedAt, CYCLE_DAYS));
 
             return (
             <li key={client.id} className="client-item card">
@@ -354,6 +339,9 @@ export function CoachDashboard() {
                       </span>
                       {overview && !overview.cycleStartedAt && (
                         <span className="status-badge status-badge--warn">Ciclo no iniciado</span>
+                      )}
+                      {cycleCompleted && (
+                        <span className="status-badge status-badge--ok">Ciclo completado</span>
                       )}
                       {inactive && (
                         <span className="status-badge status-badge--warn">Sin avance aún</span>

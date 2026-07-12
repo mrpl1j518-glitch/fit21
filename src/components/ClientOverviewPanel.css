@@ -36,6 +36,11 @@
   color: #9a4e0a;
 }
 
+.client-overview__chip--done {
+  background: rgba(20, 166, 166, 0.14);
+  color: #0d7a7a;
+}
+
 .client-overview__cycle-actions {
   margin-bottom: var(--space-sm);
 }

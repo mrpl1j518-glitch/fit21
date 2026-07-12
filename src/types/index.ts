@@ -184,7 +184,8 @@ export const MEAL_PRESETS = ['Desayuno', 'Comida', 'Cena', 'Snack'] as const;
 
 /** Duración del ciclo de constancia (marca FIT21, ciclo de 28 días). */
 export const CYCLE_DAYS = 28;
-export const MILESTONE_DAYS = 7;
+/** Hitos de celebración (días completados que disparan kudos). */
+export const CELEBRATION_MILESTONES = [1, 7, 14, 21, 28] as const;
 
 export function formatRest(ex: Exercise): string {
   if (ex.restMin || ex.restSec) {

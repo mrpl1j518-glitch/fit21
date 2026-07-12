@@ -9,10 +9,10 @@ import {
   type Unsubscribe,
 } from 'firebase/firestore';
 import { nanoid } from 'nanoid';
-import { db, auth } from './firebase';
+import { db } from './firebase';
 import { normalizeMediaUrl } from './mediaUrl';
 import { slugifyName } from './clientSlug';
-import { daysSinceDate, formatDateKey, startOfTodayIso } from './dates';
+import { daysSinceDate, formatDateKey, isDateWithinCycle, startOfTodayIso } from './dates';
 import { hasNutritionContent, hasRoutineContent } from './planContent';
 export { hasNutritionContent, hasRoutineContent } from './planContent';
 
@@ -34,10 +34,6 @@ import type {
 function requireDb() {
   if (!db) throw new Error('Firebase no está configurado. Revisa tu archivo .env');
   return db;
-}
-
-function isCoachSession(): boolean {
-  return Boolean(auth?.currentUser);
 }
 
 export function generateClientId(): string {
@@ -249,12 +245,18 @@ export async function setDayComplete(
     throw new Error('El ciclo aún no ha sido iniciado por el coach');
   }
 
+  const cycleStartedAt = (clientSnap.data() as Client).cycleStartedAt!;
+  const countsTowardCycle = isDateWithinCycle(cycleStartedAt, dateKey, CYCLE_DAYS);
+
   const docId = `${clientId}_${weekStart}`;
   await setDoc(
     doc(firestore, 'weekProgress', docId),
     { [dateKey]: complete },
     { merge: true }
   );
+
+  // Días fuera de la ventana de 28 no mueven el contador del ciclo
+  if (!countsTowardCycle) return;
 
   if (complete && !previousComplete) {
     await incrementProgressCount(clientId, 1);
@@ -321,36 +323,6 @@ export async function restartClientCycle(clientId: string) {
     { cycleStartedAt: startOfTodayIso() },
     { merge: true }
   );
-}
-
-/**
- * Si el ciclo ya lleva 28+ días, lo reinicia automáticamente.
- * No inicia ciclos nuevos: eso lo hace el coach con startClientCycle.
- */
-export async function ensureActiveCycle(clientId: string): Promise<Client | null> {
-  const firestore = requireDb();
-  const ref = doc(firestore, 'clients', clientId);
-  const snap = await getDoc(ref);
-  if (!snap.exists()) return null;
-
-  const client = snap.data() as Client;
-  const cycleStartedAt = client.cycleStartedAt;
-
-  if (!isCoachSession()) {
-    return client;
-  }
-
-  if (!cycleStartedAt) {
-    return client;
-  }
-
-  if (daysSinceDate(cycleStartedAt) >= CYCLE_DAYS) {
-    await restartClientCycle(clientId);
-    const refreshed = await getDoc(ref);
-    return refreshed.exists() ? (refreshed.data() as Client) : null;
-  }
-
-  return client;
 }
 
 export interface ClientPlanMeta {

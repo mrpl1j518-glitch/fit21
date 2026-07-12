@@ -5,7 +5,8 @@ import {
   startClientCycle,
   updateClientCoachMeta,
 } from '../lib/firestore';
-import type { ClientCoachOverview } from '../types';
+import { isCyclePeriodEnded } from '../lib/dates';
+import { CYCLE_DAYS, type ClientCoachOverview } from '../types';
 import './ClientOverviewPanel.css';
 
 interface ClientOverviewPanelProps {
@@ -31,6 +32,12 @@ export function ClientOverviewPanel({ clientId, overview }: ClientOverviewPanelP
   if (!overview) return null;
 
   const cycleStarted = Boolean(overview.cycleStartedAt);
+  const cycleCompleted =
+    cycleStarted &&
+    (overview.progressCount >= CYCLE_DAYS ||
+      (overview.cycleStartedAt
+        ? isCyclePeriodEnded(overview.cycleStartedAt, CYCLE_DAYS)
+        : false));
 
   const handleSaveMeta = async () => {
     setSaving(true);
@@ -71,13 +78,17 @@ export function ClientOverviewPanel({ clientId, overview }: ClientOverviewPanelP
   return (
     <div className="client-overview">
       <div className="client-overview__stats">
-        {cycleStarted ? (
-          <span className="client-overview__chip client-overview__chip--progress">
-            {overview.progressCount}/28 días completados
-          </span>
-        ) : (
+        {!cycleStarted ? (
           <span className="client-overview__chip client-overview__chip--warn">
             Ciclo no iniciado
+          </span>
+        ) : cycleCompleted ? (
+          <span className="client-overview__chip client-overview__chip--done">
+            Ciclo completado
+          </span>
+        ) : (
+          <span className="client-overview__chip client-overview__chip--progress">
+            {overview.progressCount}/28 días completados
           </span>
         )}
         <span className="client-overview__chip">
@@ -103,7 +114,7 @@ export function ClientOverviewPanel({ clientId, overview }: ClientOverviewPanelP
         ) : (
           <button
             type="button"
-            className="btn btn--small btn--ghost"
+            className={`btn btn--small ${cycleCompleted ? 'btn--primary' : 'btn--ghost'}`}
             onClick={handleRestartCycle}
             disabled={cycleBusy}
           >
@@ -111,6 +122,13 @@ export function ClientOverviewPanel({ clientId, overview }: ClientOverviewPanelP
           </button>
         )}
       </div>
+
+      {cycleCompleted && (
+        <p className="client-overview__preview-hint">
+          El periodo de 28 días terminó. La alumna puede seguir marcando días, pero no suman al
+          contador hasta que reinicies el ciclo.
+        </p>
+      )}
 
       {editing ? (
         <div className="client-overview__edit">
