@@ -216,6 +216,12 @@
   gap: 0.5rem;
 }
 
+.exercise-add-row--footer {
+  margin-top: 0.25rem;
+  padding-top: 0.85rem;
+  border-top: 1px dashed var(--color-border-subtle);
+}
+
 @media (max-width: 380px) {
   .exercise-add-row {
     grid-template-columns: 1fr;

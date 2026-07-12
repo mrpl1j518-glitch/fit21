@@ -35,6 +35,27 @@ import './CoachClientEdit.css';
 
 type Tab = 'rutina' | 'nutricion';
 
+function ExerciseAddRow({
+  onLibrary,
+  onManual,
+  className,
+}: {
+  onLibrary: () => void;
+  onManual: () => void;
+  className?: string;
+}) {
+  return (
+    <div className={['exercise-add-row', className].filter(Boolean).join(' ')}>
+      <button type="button" className="btn btn--secondary btn--block" onClick={onLibrary}>
+        + Desde biblioteca
+      </button>
+      <button type="button" className="btn btn--ghost btn--block" onClick={onManual}>
+        + Agregar manual
+      </button>
+    </div>
+  );
+}
+
 const emptyRoutine = (): Routine => ({
   dayName: '',
   comment: '',
@@ -452,14 +473,10 @@ export function CoachClientEdit() {
               </label>
             </div>
 
-            <div className="exercise-add-row">
-              <button type="button" className="btn btn--secondary btn--block" onClick={() => setPickerOpen(true)}>
-                + Desde biblioteca
-              </button>
-              <button type="button" className="btn btn--ghost btn--block" onClick={addManualExercise}>
-                + Agregar manual
-              </button>
-            </div>
+            <ExerciseAddRow
+              onLibrary={() => setPickerOpen(true)}
+              onManual={addManualExercise}
+            />
           </div>
 
           {routine.exercises.length === 0 ? (
@@ -577,6 +594,11 @@ export function CoachClientEdit() {
                   </div>
                 </div>
               ))}
+              <ExerciseAddRow
+                className="exercise-add-row--footer"
+                onLibrary={() => setPickerOpen(true)}
+                onManual={addManualExercise}
+              />
             </div>
           )}
 
